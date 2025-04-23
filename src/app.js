@@ -10,6 +10,7 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const loanRoutes = require("./routes/loanRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
@@ -55,9 +56,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/loans", loanRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Directory setup for static files
-app.use(express.static(path.join(__dirname, "views")));
+app.use('/views', express.static(path.join(__dirname, 'views')));
 
 // Add error handling middleware
 app.use(errorHandler);

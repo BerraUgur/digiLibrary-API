@@ -37,3 +37,5 @@ API dokümantasyonuna erişmek için tarayıcınızda şu URL'yi açın:
 ```
 http://localhost:3000/api-docs
 ```
+
+node seed.js ile örnek veriler alın

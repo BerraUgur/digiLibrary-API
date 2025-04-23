@@ -24,53 +24,60 @@ const getAllBooks = async (req, res) => {
   }
 };
 
-// Adding a new book
+// Adding a new book (only by user, not admin)
 const createBook = async (req, res) => {
   try {
     const { title, author, category } = req.body;
-
     if (!title || !author || !category) {
       return res.status(400).json({ message: 'Please fill in all fields: title, author, category.' });
     }
-
-    const newBook = new Book(req.body);
+    // Sadece kullanıcılar kitap ekleyebilir, admin ekleyemez
+    if (req.user.role !== 'user') {
+      return res.status(403).json({ message: 'Only users can add books.' });
+    }
+    // Kitabı ekleyen kullanıcıyı kaydet
+    const newBook = new Book({ ...req.body, owner: req.user.id });
     await newBook.save();
-
     res.status(201).json(newBook);
   } catch (error) {
     res.status(400).json({ message: 'An error occurred while adding the book.' });
   }
 };
 
-// Updating book details
+// Updating book details (only by owner)
 const updateBook = async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
-
-    const updatedBook = await Book.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
-
-    if (!updatedBook) {
+    const book = await Book.findById(id);
+    if (!book) {
       return res.status(404).json({ message: 'Book not found.' });
     }
-
-    res.status(200).json(updatedBook);
+    // Sadece kitabı ekleyen kullanıcı güncelleyebilir
+    if (book.owner.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'You can only update your own books.' });
+    }
+    Object.assign(book, updates);
+    await book.save();
+    res.status(200).json(book);
   } catch (error) {
     res.status(400).json({ message: 'An error occurred while updating the book.' });
   }
 };
 
-// Deleting a book
+// Deleting a book (admin can delete any book, user only own book)
 const deleteBook = async (req, res) => {
   try {
     const { id } = req.params;
-
-    const deletedBook = await Book.findByIdAndDelete(id);
-
-    if (!deletedBook) {
+    const book = await Book.findById(id);
+    if (!book) {
       return res.status(404).json({ message: 'Book not found.' });
     }
-
+    // Admin her kitabı silebilir, kullanıcı sadece kendi kitabını silebilir
+    if (req.user.role !== 'admin' && book.owner.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'You can only delete your own books.' });
+    }
+    await book.deleteOne();
     res.status(200).json({ message: 'Book successfully deleted.' });
   } catch (error) {
     res.status(400).json({ message: 'An error occurred while deleting the book.' });
@@ -83,4 +90,3 @@ module.exports = {
   updateBook,
   deleteBook,
 };
-

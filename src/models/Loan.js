@@ -11,6 +11,8 @@ const loanSchema = new mongoose.Schema({
   returnDate: { type: Date },
   // İade durumu
   isReturned: { type: Boolean, default: false },
+  // The date by which the book must be returned
+  dueDate: { type: Date, required: true },
 }, { timestamps: true });
 
 // Add an index for user and book fields

@@ -9,6 +9,8 @@ const bookSchema = new mongoose.Schema({
   category: { type: String, required: true },
   // Kitabın mevcut olup olmadığı bilgisi
   available: { type: Boolean, default: true },
+  // Kitabı ekleyen kullanıcı
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
 
 // Add indexes for title and author fields

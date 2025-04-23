@@ -60,8 +60,35 @@ const updatePassword = async (req, res) => {
   }
 };
 
+// Kullanıcı silme (sadece admin)
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    await user.deleteOne();
+    res.status(200).json({ message: 'User successfully deleted.' });
+  } catch (error) {
+    res.status(500).json({ message: 'An error occurred while deleting the user.' });
+  }
+};
+
+// Kullanıcıları listeleme
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select('-password'); // Şifre hariç tüm kullanıcı bilgilerini getir
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Kullanıcılar alınırken bir hata oluştu.' });
+  }
+};
+
 module.exports = {
   getUserProfile,
   updateUserProfile,
   updatePassword,
+  deleteUser,
+  getAllUsers,
 };

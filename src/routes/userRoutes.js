@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const { verifyAccessToken } = require('../middleware/auth');
+const { verifyAccessToken, authorizeRoles } = require('../middleware/auth');
+const ROLES = require('../constants/roles');
 const { addFavorite, getFavorites, removeFavorite } = require('../controllers/favoriteController');
 
 /**
@@ -131,6 +132,41 @@ const { addFavorite, getFavorites, removeFavorite } = require('../controllers/fa
  *         description: Internal server error
  */
 
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   delete:
+ *     summary: Delete a user (admin only)
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ *       404:
+ *         description: User not found
+ *       403:
+ *         description: Forbidden
+ */
+
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Get all users (admin only)
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: List of users retrieved successfully
+ *       403:
+ *         description: Forbidden
+ */
+
 // Routes for user management
 // Get user profile
 router.get('/profile', verifyAccessToken, userController.getUserProfile);
@@ -149,5 +185,11 @@ router.get('/favorites', verifyAccessToken, getFavorites);
 
 // Remove a book from favorites
 router.delete('/favorites/:favoriteId', verifyAccessToken, removeFavorite);
+
+// Kullanıcıları listeleme endpoint'i
+router.get('/users', verifyAccessToken, authorizeRoles(ROLES.ADMIN), userController.getAllUsers);
+
+// Kullanıcı silme (sadece admin)
+router.delete('/:id', verifyAccessToken, authorizeRoles(ROLES.ADMIN), userController.deleteUser);
 
 module.exports = router;

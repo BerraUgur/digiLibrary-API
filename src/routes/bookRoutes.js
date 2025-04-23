@@ -135,13 +135,13 @@ const validate = (req, res, next) => {
 // List all books (with filtering and sorting)
 router.get('/', bookController.getAllBooks);
 
-// Add a new book (admin only)
-router.post('/', verifyAccessToken, authorizeRoles(ROLES.ADMIN), addBookValidationRules, validate, bookController.createBook);
+// Add a new book (user only)
+router.post('/', verifyAccessToken, authorizeRoles(ROLES.USER), addBookValidationRules, validate, bookController.createBook);
 
-// Update book details (admin only)
-router.put('/:id', verifyAccessToken, authorizeRoles(ROLES.ADMIN), updateBookValidationRules, validate, bookController.updateBook);
+// Update book details (user only, only if owner)
+router.put('/:id', verifyAccessToken, authorizeRoles(ROLES.USER), updateBookValidationRules, validate, bookController.updateBook);
 
-// Delete a book (admin only)
-router.delete('/:id', verifyAccessToken, authorizeRoles(ROLES.ADMIN), bookController.deleteBook);
+// Delete a book (admin or user only, only if owner)
+router.delete('/:id', verifyAccessToken, authorizeRoles(ROLES.ADMIN, ROLES.USER), bookController.deleteBook);
 
 module.exports = router;
