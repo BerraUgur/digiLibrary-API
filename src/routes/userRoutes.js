@@ -5,13 +5,7 @@ const { verifyAccessToken, authorizeRoles } = require('../middleware/auth');
 const ROLES = require('../constants/roles');
 const { addFavorite, getFavorites, removeFavorite } = require('../controllers/favoriteController');
 
-/**
- * @swagger
- * tags:
- *   name: Users
- *   description: API endpoints for user management
- */
-
+// User profile routes
 /**
  * @swagger
  * /api/users/profile:
@@ -24,6 +18,7 @@ const { addFavorite, getFavorites, removeFavorite } = require('../controllers/fa
  *       404:
  *         description: User not found
  */
+router.get('/profile', verifyAccessToken, userController.getUserProfile);
 
 /**
  * @swagger
@@ -48,6 +43,7 @@ const { addFavorite, getFavorites, removeFavorite } = require('../controllers/fa
  *       404:
  *         description: User not found
  */
+router.put('/profile', verifyAccessToken, userController.updateUserProfile);
 
 /**
  * @swagger
@@ -72,7 +68,9 @@ const { addFavorite, getFavorites, removeFavorite } = require('../controllers/fa
  *       400:
  *         description: Bad request
  */
+router.put('/password', verifyAccessToken, userController.updatePassword);
 
+// Favorites routes
 /**
  * @swagger
  * /api/users/favorites:
@@ -96,7 +94,12 @@ const { addFavorite, getFavorites, removeFavorite } = require('../controllers/fa
  *         description: Bad request
  *       500:
  *         description: Internal server error
- *
+ */
+router.post('/favorites', verifyAccessToken, addFavorite);
+
+/**
+ * @swagger
+ * /api/users/favorites:
  *   get:
  *     summary: Get all favorite books for a user
  *     tags: [Favorites]
@@ -111,7 +114,11 @@ const { addFavorite, getFavorites, removeFavorite } = require('../controllers/fa
  *                 $ref: '#/components/schemas/Favorite'
  *       500:
  *         description: Internal server error
- *
+ */
+router.get('/favorites', verifyAccessToken, getFavorites);
+
+/**
+ * @swagger
  * /api/users/favorites/{favoriteId}:
  *   delete:
  *     summary: Remove a book from favorites
@@ -131,6 +138,24 @@ const { addFavorite, getFavorites, removeFavorite } = require('../controllers/fa
  *       500:
  *         description: Internal server error
  */
+router.delete('/favorites/:favoriteId', verifyAccessToken, removeFavorite);
+
+// Admin routes
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Get all users (admin only)
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: List of users retrieved successfully
+ *       403:
+ *         description: Forbidden
+ */
+router.get('/', verifyAccessToken, authorizeRoles(ROLES.ADMIN), userController.getAllUsers);
+
+router.put('/:id', verifyAccessToken, authorizeRoles(ROLES.ADMIN), userController.updateUser);
 
 /**
  * @swagger
@@ -153,43 +178,6 @@ const { addFavorite, getFavorites, removeFavorite } = require('../controllers/fa
  *       403:
  *         description: Forbidden
  */
-
-/**
- * @swagger
- * /api/users:
- *   get:
- *     summary: Get all users (admin only)
- *     tags: [Users]
- *     responses:
- *       200:
- *         description: List of users retrieved successfully
- *       403:
- *         description: Forbidden
- */
-
-// Routes for user management
-// Get user profile
-router.get('/profile', verifyAccessToken, userController.getUserProfile);
-
-// Update user profile
-router.put('/profile', verifyAccessToken, userController.updateUserProfile);
-
-// Update user password
-router.put('/password', verifyAccessToken, userController.updatePassword);
-
-// Add a book to favorites
-router.post('/favorites', verifyAccessToken, addFavorite);
-
-// Get all favorite books for a user
-router.get('/favorites', verifyAccessToken, getFavorites);
-
-// Remove a book from favorites
-router.delete('/favorites/:favoriteId', verifyAccessToken, removeFavorite);
-
-// Kullanıcıları listeleme endpoint'i
-router.get('/users', verifyAccessToken, authorizeRoles(ROLES.ADMIN), userController.getAllUsers);
-
-// Kullanıcı silme (sadece admin)
 router.delete('/:id', verifyAccessToken, authorizeRoles(ROLES.ADMIN), userController.deleteUser);
 
 module.exports = router;

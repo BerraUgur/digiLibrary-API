@@ -1,14 +1,15 @@
 module.exports = {
-    accessToken: {
-      secret:
-        process.env.JWT_ACCESS_SECRET ||
-        "53cea5b4979e78712a1ce6ea22afd9c760109fd6691ff10357e2e8d31f39cda1",
-      expiresIn: "5m", // Short-lived
-    },
-    refreshToken: {
-      secret:
-        process.env.JWT_REFRESH_SECRET ||
-        "cc36f232c2018bf3ea6b0f448c46bf3863f707eb621a36da120b8fe81b47f4e4",
-      expiresIn: "7d", // Longer-lived
-    },
-  };
+  accessToken: {
+    secret: process.env.JWT_ACCESS_SECRET || "default-access-secret-change-this-in-production",
+    expiresIn: "2h", // Short expiration for security
+    cookieMaxAge: 2 * 60 * 60 * 1000, // 2 hours in milliseconds
+  },
+  refreshToken: {
+    secret: process.env.JWT_REFRESH_SECRET || "default-refresh-secret-change-this-in-production",
+    expiresIn: "7d", // Longer expiration for user convenience
+    cookieMaxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+  },
+  passwordReset: {
+    expiresInMs: 60 * 60 * 1000, // Password reset tokens expire after 1 hour
+  },
+};

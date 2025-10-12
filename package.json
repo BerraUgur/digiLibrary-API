@@ -1,7 +1,7 @@
 {
   "name": "online-library-management-system",
   "version": "1.0.0",
-  "description": "nodejs proje",
+  "description": "Backend for Online Library Management System",
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
@@ -13,6 +13,7 @@
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "cron": "^4.3.3",
     "date-fns": "^4.1.0",
     "dotenv": "^16.5.0",
     "express": "^4.21.2",
@@ -23,6 +24,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongo-sanitize": "^1.1.0",
     "mongoose": "^8.13.2",
+    "multer": "^2.0.2",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.10.1",
     "stripe": "^18.0.0",

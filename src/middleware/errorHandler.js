@@ -1,22 +1,37 @@
-const { logEvents } = require("./logEvents");
+const { logErrorDetails } = require("./logEvents");
 
-// Global error handling middleware
-const errorHandler = (err, req, res, next) => {
-  // Log the error details
-  const errorMessage = `${err.name}: ${err.message}\t${req.method}\t${req.url}\t${req.headers.origin || "unknown"}`;
-  logEvents(errorMessage, "errLog.log");
+const errorHandler = (err, req, res, _next) => {
+  // Log error details using helper function
+  logErrorDetails('Global Error Handler', err, req, {
+    method: req.method,
+    url: req.url,
+    origin: req.headers.origin || 'unknown',
+    requestBody: JSON.stringify(req.body || {})
+  });
 
-  console.error(err.stack);
+  // Log to console in development
+  if (process.env.NODE_ENV !== "production") {
+    console.error('🔴 Global Error Handler:', err.stack);
+  }
+
+  // Determine appropriate status code
   const status = res.statusCode === 200 ? 500 : res.statusCode;
   res.status(status);
 
-  // Return detailed error response
-  res.json({
-    message: err.message,
+  // Build error response
+  const errorResponse = {
+    success: false,
+    message: err.message || 'Internal server error',
     type: err.name,
-    stack: process.env.NODE_ENV === "production" ? null : err.stack,
     timestamp: new Date().toISOString(),
-  });
+  };
+
+  // Include stack trace only in development
+  if (process.env.NODE_ENV !== "production") {
+    errorResponse.stack = err.stack;
+  }
+
+  res.json(errorResponse);
 };
 
 module.exports = errorHandler;

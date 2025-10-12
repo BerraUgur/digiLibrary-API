@@ -1,22 +1,26 @@
 const mongoose = require('mongoose');
 
 const loanSchema = new mongoose.Schema({
-  // Ödünç alan kullanıcı
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  // Ödünç alınan kitap
   book: { type: mongoose.Schema.Types.ObjectId, ref: 'Book', required: true },
-  // Ödünç alma tarihi
   loanDate: { type: Date, default: Date.now },
-  // İade tarihi
-  returnDate: { type: Date },
-  // İade durumu
-  isReturned: { type: Boolean, default: false },
-  // The date by which the book must be returned
   dueDate: { type: Date, required: true },
+  returnDate: { type: Date },
+  isReturned: { type: Boolean, default: false },
+  // Late return penalties
+  lateFee: { type: Number, default: 0 }, // Amount in TL
+  daysLate: { type: Number, default: 0 },
+  lateFeePaid: { type: Boolean, default: false },
+  lateFeePaymentDate: { type: Date },
+  // Email reminder tracking
+  reminderSent: { type: Boolean, default: false },
+  // Stripe payment integration
+  stripePaymentId: { type: String },
 }, { timestamps: true });
 
-// Add an index for user and book fields
-loanSchema.index({ user: 1 });
+// Indexes for efficient queries
+loanSchema.index({ user: 1, isReturned: 1 });
 loanSchema.index({ book: 1 });
+loanSchema.index({ dueDate: 1 });
 
 module.exports = mongoose.model('Loan', loanSchema);

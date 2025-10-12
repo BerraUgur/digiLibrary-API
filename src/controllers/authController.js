@@ -1,14 +1,19 @@
 const jwt = require("jsonwebtoken");
+const crypto = require('crypto');
 const sanitize = require('mongo-sanitize');
-const { accessToken, refreshToken } = require("../config/jwtConfig");
+const { logErrorDetails } = require('../middleware/logEvents');
+const { accessToken, refreshToken, passwordReset } = require("../config/jwtConfig");
 const RefreshToken = require("../models/RefreshToken");
 const User = require("../models/User");
+const PasswordReset = require("../models/PasswordReset");
 const ROLES = require('../constants/roles');
+const { sendPasswordResetEmail } = require('../services/mailService');
 
-// Function to generate access and refresh tokens
+// Generate JWT access and refresh tokens for user authentication
+// Access token contains user details, refresh token only contains user ID for security
 const generateTokens = (user) => {
   const accessTokenPayload = { id: user._id, email: user.email, role: user.role };
-  const refreshTokenPayload = { id: user._id };
+  const refreshTokenPayload = { id: user._id }; // Minimal data in refresh token
 
   return {
     accessToken: jwt.sign(accessTokenPayload, accessToken.secret, { expiresIn: accessToken.expiresIn }),
@@ -16,7 +21,6 @@ const generateTokens = (user) => {
   };
 };
 
-// User registration process
 const registerUser = async (req, res) => {
   try {
     const sanitizedBody = sanitize(req.body);
@@ -37,11 +41,18 @@ const registerUser = async (req, res) => {
     const { password: _, ...userResponse } = user.toObject();
     res.status(201).json(userResponse);
   } catch (error) {
+    await logErrorDetails('User Registration Failed', error, req, {
+      email: sanitizedBody?.email || 'N/A',
+      username: sanitizedBody?.username || 'N/A',
+      role: sanitizedBody?.role || ROLES.USER
+    });
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('🔴 Registration Error:', error);
+    }
     res.status(500).json({ message: "An error occurred while saving the user." });
   }
 };
 
-// User login process
 const loginUser = async (req, res) => {
   try {
     const sanitizedBody = sanitize(req.body);
@@ -56,6 +67,7 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password." });
     }
 
+    // Delete old refresh tokens to prevent token accumulation and force re-login on other devices
     await RefreshToken.deleteMany({ userId: user._id });
     const tokens = generateTokens(user);
 
@@ -65,7 +77,7 @@ const loginUser = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 15 * 60 * 1000,
+      maxAge: accessToken.cookieMaxAge,
     });
 
     res.cookie("refreshToken", tokens.refreshToken, {
@@ -73,17 +85,22 @@ const loginUser = async (req, res) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       path: "/api/auth/refresh-token",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: refreshToken.cookieMaxAge,
     });
 
     const { password: _, ...userResponse } = user.toObject();
     res.status(200).json({ message: "Login successful!", user: userResponse });
   } catch (error) {
+    await logErrorDetails('User Login Failed', error, req, {
+      email: sanitizedBody?.email || 'N/A'
+    });
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('🔴 Login Error:', error);
+    }
     res.status(500).json({ message: "An error occurred during user login." });
   }
 };
 
-// Token refresh process
 const refreshTokens = async (req, res) => {
   try {
     const { refreshToken: oldRefreshToken } = req.body;
@@ -112,7 +129,7 @@ const refreshTokens = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 15 * 60 * 1000,
+      maxAge: accessToken.cookieMaxAge,
     });
 
     res.cookie("refreshToken", tokens.refreshToken, {
@@ -120,16 +137,21 @@ const refreshTokens = async (req, res) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       path: "/api/auth/refresh-token",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: refreshToken.cookieMaxAge,
     });
 
     res.status(200).json({ message: "Tokens successfully refreshed." });
   } catch (error) {
+    await logErrorDetails('Token Refresh Failed', error, req, {
+      'old token': oldRefreshToken ? 'Provided' : 'Missing'
+    });
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('🔴 Token Refresh Error:', error);
+    }
     res.status(500).json({ message: "An error occurred during token refresh." });
   }
 };
 
-// Logout process
 const logout = async (req, res) => {
   try {
     const { refreshToken } = req.cookies;
@@ -142,8 +164,102 @@ const logout = async (req, res) => {
 
     res.status(200).json({ message: "Successfully logged out." });
   } catch (error) {
+    await logErrorDetails('User Logout Failed', error, req, {
+      'cookies present': !!req.cookies.refreshToken
+    });
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('🔴 Logout Error:', error);
+    }
     res.status(500).json({ message: "An error occurred during logout." });
   }
 };
 
-module.exports = { registerUser, loginUser, refreshTokens, logout };
+const requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email address is required.' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(200).json({ message: 'If this email is registered, a password reset link has been sent.' });
+    }
+
+    await PasswordReset.updateMany(
+      { user: user._id, used: false },
+      { used: true }
+    );
+
+    // Generate cryptographically secure random token for password reset
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + passwordReset.expiresInMs);
+
+    await PasswordReset.create({
+      user: user._id,
+      token: resetToken,
+      expiresAt,
+    });
+
+    await sendPasswordResetEmail(user.email, resetToken);
+
+    res.status(200).json({ message: 'If this email is registered, a password reset link has been sent.' });
+  } catch (error) {
+    await logErrorDetails('Password Reset Request Failed', error, req, {
+      email: email
+    });
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('🔴 Password Reset Request Error:', error);
+    }
+    res.status(500).json({ message: "An error occurred while processing password reset request." });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: 'Token and new password are required.' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long.' });
+    }
+
+    const resetRecord = await PasswordReset.findOne({ token, used: false });
+
+    if (!resetRecord) {
+      return res.status(400).json({ message: 'Invalid or already used token.' });
+    }
+
+    if (resetRecord.isExpired()) {
+      return res.status(400).json({ message: 'Token has expired. Please request a new password reset.' });
+    }
+
+    const user = await User.findById(resetRecord.user);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    resetRecord.used = true;
+    await resetRecord.save();
+
+    res.status(200).json({ message: 'Password successfully updated. You can now login.' });
+  } catch (error) {
+    await logErrorDetails('Password Reset Failed', error, req, {
+      'token valid': !!resetRecord,
+      'user email': resetRecord?.email || 'N/A'
+    });
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('🔴 Password Reset Error:', error);
+    }
+    res.status(500).json({ message: "An error occurred while resetting password." });
+  }
+};
+
+module.exports = { registerUser, loginUser, refreshTokens, logout, requestPasswordReset, resetPassword };

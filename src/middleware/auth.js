@@ -1,9 +1,9 @@
 const jwt = require("jsonwebtoken");
+const { logErrorDetails } = require('./logEvents');
 const { accessToken, refreshToken } = require("../config/jwtConfig");
 const RefreshToken = require("../models/RefreshToken");
-const ROLES = require('../constants/roles');
 
-// Verifying access token
+// Verify JWT access token from cookies or Authorization header
 const verifyAccessToken = (req, res, next) => {
   const token = req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
 
@@ -15,12 +15,19 @@ const verifyAccessToken = (req, res, next) => {
     const decoded = jwt.verify(token, accessToken.secret);
     req.user = decoded;
     next();
-  } catch (err) {
+  } catch (error) {
+    logErrorDetails('Verify Access Token Failed', error, req, {
+      'token provided': token ? 'Yes (hidden for security)' : 'No',
+      'token source': req.cookies.accessToken ? 'Cookie' : 'Authorization Header'
+    });
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('🔴 Access Token Verification Error:', error);
+    }
     return res.status(401).json({ message: "Invalid or expired access token." });
   }
 };
 
-// Verifying refresh token
+// Verify JWT refresh token and check database validity
 const verifyRefreshToken = async (req, res, next) => {
   const token = req.cookies.refreshToken || req.body.refreshToken;
 
@@ -28,8 +35,9 @@ const verifyRefreshToken = async (req, res, next) => {
     return res.status(403).json({ message: "Refresh token is required." });
   }
 
+  let storedToken;
   try {
-    const storedToken = await RefreshToken.findOne({ token });
+    storedToken = await RefreshToken.findOne({ token });
     if (!storedToken) {
       return res.status(403).json({ message: "Invalid refresh token." });
     }
@@ -38,6 +46,15 @@ const verifyRefreshToken = async (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
+    await logErrorDetails('Verify Refresh Token Failed', err, req, {
+      'token in db': storedToken ? 'Found' : 'Not Found',
+      'token source': req.cookies.refreshToken ? 'Cookie' : 'Request Body'
+    });
+    
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('🔴 Refresh Token Verification Error:', err);
+    }
+    
     if (err.name === "TokenExpiredError") {
       await RefreshToken.deleteOne({
         token: req.cookies.refreshToken || req.body.refreshToken,
@@ -48,11 +65,14 @@ const verifyRefreshToken = async (req, res, next) => {
   }
 };
 
-// Role-based authorization
+// Role-based authorization middleware - restricts access by user role
 const authorizeRoles = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ message: "Access denied: Insufficient permissions." });
+      return res.status(403).json({ 
+        success: false,
+        message: "Access denied: Insufficient permissions." 
+      });
     }
     next();
   };

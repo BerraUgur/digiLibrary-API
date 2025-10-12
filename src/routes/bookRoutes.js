@@ -1,18 +1,20 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const bookController = require('../controllers/bookController');
 const { verifyAccessToken, authorizeRoles } = require('../middleware/auth');
-const { addBookValidationRules, updateBookValidationRules } = require('../validators/bookValidator');
-const { validationResult } = require('express-validator');
+const {
+  normalizeMultipartFields,
+  validateCreateBook,
+  validateUpdateBook,
+} = require('../validators/bookValidator');
 const ROLES = require('../constants/roles');
 
-/**
- * @swagger
- * tags:
- *   name: Books
- *   description: API endpoints for book management
- */
+// Configure multer for in-memory storage (files will be saved to GridFS)
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
+// Public routes
 /**
  * @swagger
  * /api/books:
@@ -42,7 +44,14 @@ const ROLES = require('../constants/roles');
  *       500:
  *         description: Server error
  */
+router.get('/', bookController.getAllBooks);
 
+router.get('/image/:id', bookController.streamImage);
+router.get('/popular', bookController.getPopularBooks);
+router.get('/stats/library', bookController.getLibraryStats);
+router.get('/:id([0-9a-fA-F]{24})', bookController.getBookById);
+
+// Admin routes
 /**
  * @swagger
  * /api/books:
@@ -68,6 +77,15 @@ const ROLES = require('../constants/roles');
  *       400:
  *         description: Bad request
  */
+router.post(
+  '/',
+  verifyAccessToken,
+  authorizeRoles(ROLES.ADMIN),
+  upload.single('image'),
+  normalizeMultipartFields,
+  validateCreateBook,
+  bookController.createBook
+);
 
 /**
  * @swagger
@@ -101,6 +119,15 @@ const ROLES = require('../constants/roles');
  *       404:
  *         description: Book not found
  */
+router.put(
+  '/:id',
+  verifyAccessToken,
+  authorizeRoles(ROLES.ADMIN),
+  upload.single('image'),
+  normalizeMultipartFields,
+  validateUpdateBook,
+  bookController.updateBook
+);
 
 /**
  * @swagger
@@ -121,27 +148,11 @@ const ROLES = require('../constants/roles');
  *       404:
  *         description: Book not found
  */
-
-// Middleware to handle validation errors
-const validate = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-  next();
-};
-
-// Routes for book management
-// List all books (with filtering and sorting)
-router.get('/', bookController.getAllBooks);
-
-// Add a new book (user only)
-router.post('/', verifyAccessToken, authorizeRoles(ROLES.USER), addBookValidationRules, validate, bookController.createBook);
-
-// Update book details (user only, only if owner)
-router.put('/:id', verifyAccessToken, authorizeRoles(ROLES.USER), updateBookValidationRules, validate, bookController.updateBook);
-
-// Delete a book (admin or user only, only if owner)
-router.delete('/:id', verifyAccessToken, authorizeRoles(ROLES.ADMIN, ROLES.USER), bookController.deleteBook);
+router.delete(
+  '/:id',
+  verifyAccessToken,
+  authorizeRoles(ROLES.ADMIN),
+  bookController.deleteBook
+);
 
 module.exports = router;

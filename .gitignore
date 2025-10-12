@@ -1,11 +1,22 @@
+# ============================================
+# PROJECT-SPECIFIC FILES
+# ============================================
 notlar.txt
-# Created by https://www.toptal.com/developers/gitignore/api/node
-# Edit at https://www.toptal.com/developers/gitignore?templates=node
+*.md.backup
+*.todo
 
-### Node ###
-# Logs
-logs
+# Application logs
+src/logs/
 *.log
+
+# Uploaded files
+src/uploads/
+
+# ============================================
+# NODE.JS
+# ============================================
+# Logs
+logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -137,9 +148,54 @@ dist
 # Serverless Webpack directories
 .webpack/
 
-# Optional stylelint cache
-
 # SvelteKit build / generate output
 .svelte-kit
 
-# End of https://www.toptal.com/developers/gitignore/api/node
+# ============================================
+# IDEs & EDITORS
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ============================================
+# DATABASE
+# ============================================
+*.sqlite
+*.sqlite3
+*.db
+
+# MongoDB dumps
+dump/
+*.bson
+
+# ============================================
+# TESTING
+# ============================================
+coverage/
+.nyc_output/
+*.test.local
+
+# ============================================
+# TEMPORARY FILES
+# ============================================
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+
+# ============================================
+# OS FILES
+# ============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+desktop.ini

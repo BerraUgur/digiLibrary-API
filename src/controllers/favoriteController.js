@@ -1,33 +1,53 @@
+const { logErrorDetails } = require('../middleware/logEvents');
 const Favorite = require('../models/Favorite');
 
-// Add a book to favorites
 const addFavorite = async (req, res) => {
   try {
     const { bookId } = req.body;
-    const userId = req.user.id; // Assuming user ID is available in req.user
+    const userId = req.user.id;
+
+    const Book = require('../models/Book');
+    const book = await Book.findById(bookId);
+    
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+
+    const existingFavorite = await Favorite.findOne({ userId, bookId });
+    if (existingFavorite) {
+      return res.status(400).json({ message: 'Book already in favorites' });
+    }
 
     const favorite = new Favorite({ userId, bookId });
     await favorite.save();
 
     res.status(201).json({ message: 'Book added to favorites', favorite });
   } catch (error) {
+    await logErrorDetails('Add Favorite Failed', error, req, {
+      bookId: req.body?.bookId || 'N/A'
+    });
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('🔴 Add Favorite Error:', error);
+    }
     res.status(500).json({ message: 'Failed to add favorite', error: error.message });
   }
 };
 
-// Get all favorite books for a user
 const getFavorites = async (req, res) => {
   try {
-    const userId = req.user.id; // Assuming user ID is available in req.user
+    const userId = req.user.id;
 
     const favorites = await Favorite.find({ userId }).populate('bookId');
     res.status(200).json({ favorites });
   } catch (error) {
+    await logErrorDetails('Get Favorites Failed', error, req, {});
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('🔴 Get Favorites Error:', error);
+    }
     res.status(500).json({ message: 'Failed to fetch favorites', error: error.message });
   }
 };
 
-// Remove a book from favorites
 const removeFavorite = async (req, res) => {
   try {
     const { favoriteId } = req.params;
@@ -35,6 +55,12 @@ const removeFavorite = async (req, res) => {
     await Favorite.findByIdAndDelete(favoriteId);
     res.status(200).json({ message: 'Favorite removed successfully' });
   } catch (error) {
+    await logErrorDetails('Remove Favorite Failed', error, req, {
+      favoriteId: req.params?.favoriteId || 'N/A'
+    });
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('🔴 Remove Favorite Error:', error);
+    }
     res.status(500).json({ message: 'Failed to remove favorite', error: error.message });
   }
 };
