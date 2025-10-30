@@ -25,9 +25,6 @@ const sendReminderEmail = async (to, subject, text) => {
       `[OPERATION] Send Reminder Email Failed\n[ERROR] ${error.message}\n[RECIPIENT] ${to}\n[SUBJECT] ${subject}\n[STACK]\n${error.stack}`,
       'errLog.log'
     );
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Send Reminder Email Error:', error);
-    }
     throw error;
   }
 };
@@ -36,7 +33,7 @@ const sendReminderEmail = async (to, subject, text) => {
 const sendEmail = async (to, subject, html) => {
   try {
     const info = await transporter.sendMail({
-      from: `"Digital Library" <${process.env.EMAIL_USER}>`,
+      from: `"DigiLibrary" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       html,
@@ -47,9 +44,6 @@ const sendEmail = async (to, subject, html) => {
       `[OPERATION] Send Email Failed\n[ERROR] ${error.message}\n[RECIPIENT] ${to}\n[SUBJECT] ${subject}\n[STACK]\n${error.stack}`,
       'errLog.log'
     );
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Send Email Error:', error);
-    }
     throw error;
   }
 };
@@ -58,7 +52,7 @@ const sendEmail = async (to, subject, html) => {
 const sendPasswordResetEmail = async (to, resetToken) => {
   const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
   
-  const subject = 'Password Reset Request - Digital Library';
+  const subject = 'Password Reset Request - DigiLibrary';
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #667eea;">Password Reset Request</h2>
@@ -80,7 +74,7 @@ const sendPasswordResetEmail = async (to, resetToken) => {
       <p>If you didn't request this, you can safely ignore this email.</p>
       
       <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-      <p style="color: #999; font-size: 12px;">Digital Library - ${new Date().getFullYear()}</p>
+      <p style="color: #999; font-size: 12px;">DigiLibrary - ${new Date().getFullYear()}</p>
     </div>
   `;
 
@@ -96,9 +90,6 @@ const sendPasswordResetEmail = async (to, resetToken) => {
       `[OPERATION] Send Password Reset Email Failed\n[ERROR] ${error.message}\n[RECIPIENT] ${to}\n[RESET URL] ${resetUrl}\n[STACK]\n${error.stack}`,
       'errLog.log'
     );
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Send Password Reset Email Error:', error);
-    }
     throw error;
   }
 };
@@ -134,7 +125,7 @@ const sendLateFeePaymentConfirmation = async (userEmail, loan, paymentAmount) =>
       <p>Remember to return your books on time.</p>
       
       <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-      <p style="color: #999; font-size: 12px;">Digital Library - ${new Date().getFullYear()}</p>
+      <p style="color: #999; font-size: 12px;">DigiLibrary - ${new Date().getFullYear()}</p>
     </div>
   `;
 
@@ -150,9 +141,6 @@ const sendLateFeePaymentConfirmation = async (userEmail, loan, paymentAmount) =>
       `[OPERATION] Send Payment Confirmation Failed\n[ERROR] ${error.message}\n[RECIPIENT] ${userEmail}\n[BOOK] ${loan?.book?.title || 'Unknown'}\n[AMOUNT] ${paymentAmount} TL\n[STACK]\n${error.stack}`,
       'errLog.log'
     );
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Send Payment Confirmation Error:', error);
-    }
   }
 };
 

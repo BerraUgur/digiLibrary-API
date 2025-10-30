@@ -8,7 +8,7 @@ const {
   validateCreateBook,
   validateUpdateBook,
 } = require('../validators/bookValidator');
-const ROLES = require('../constants/roles');
+const ROLES = require('../constants/rolesConstants');
 
 // Configure multer for in-memory storage (files will be saved to GridFS)
 const storage = multer.memoryStorage();

@@ -11,9 +11,6 @@ const getUserProfile = async (req, res) => {
     res.status(200).json(user);
   } catch (error) {
     await logErrorDetails('Get User Profile Failed', error, req, {});
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Get User Profile Error:', error);
-    }
     res.status(500).json({ message: 'Server error.' });
   }
 };
@@ -34,9 +31,6 @@ const updateUserProfile = async (req, res) => {
     await logErrorDetails('Update User Profile Failed', error, req, {
       updatedFields: Object.keys(req.body || {}).join(', ')
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Update User Profile Error:', error);
-    }
     res.status(500).json({ message: 'Server error.' });
   }
 };
@@ -65,9 +59,6 @@ const updatePassword = async (req, res) => {
     res.status(200).json({ message: 'Password successfully updated.' });
   } catch (error) {
     await logErrorDetails('Update Password Failed', error, req, {});
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Update Password Error:', error);
-    }
     res.status(500).json({ message: 'Server error.' });
   }
 };
@@ -85,9 +76,6 @@ const deleteUser = async (req, res) => {
     await logErrorDetails('Delete User Failed', error, req, {
       targetUserId: req.params?.id || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Delete User Error:', error);
-    }
     res.status(500).json({ message: 'An error occurred while deleting the user.' });
   }
 };
@@ -98,9 +86,6 @@ const getAllUsers = async (req, res) => {
     res.status(200).json(users);
   } catch (error) {
     await logErrorDetails('Get All Users Failed', error, req, {});
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Get All Users Error:', error);
-    }
     res.status(500).json({ message: 'An error occurred while fetching users.' });
   }
 };
@@ -129,9 +114,6 @@ const updateUser = async (req, res) => {
       targetUserId: req.params?.id || 'N/A',
       updatedFields: Object.keys(req.body || {}).join(', ')
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Update User Error:', error);
-    }
     res.status(500).json({ message: 'An error occurred while updating user.' });
   }
 };

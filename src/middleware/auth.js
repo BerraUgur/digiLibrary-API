@@ -20,9 +20,6 @@ const verifyAccessToken = (req, res, next) => {
       'token provided': token ? 'Yes (hidden for security)' : 'No',
       'token source': req.cookies.accessToken ? 'Cookie' : 'Authorization Header'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Access Token Verification Error:', error);
-    }
     return res.status(401).json({ message: "Invalid or expired access token." });
   }
 };
@@ -50,10 +47,6 @@ const verifyRefreshToken = async (req, res, next) => {
       'token in db': storedToken ? 'Found' : 'Not Found',
       'token source': req.cookies.refreshToken ? 'Cookie' : 'Request Body'
     });
-    
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Refresh Token Verification Error:', err);
-    }
     
     if (err.name === "TokenExpiredError") {
       await RefreshToken.deleteOne({

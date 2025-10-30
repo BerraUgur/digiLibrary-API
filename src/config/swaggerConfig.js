@@ -5,12 +5,12 @@ const options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "Online Library Management System API",
+      title: "DigiLibrary API",
       version: "1.0.0",
-      description: "Comprehensive API for managing library operations including books, loans, users, and payments",
+      description: "Comprehensive API for managing DigiLibrary operations including books, loans, users, and payments",
       contact: {
-        name: "Library Development Team",
-        email: "dev@library.com"
+        name: "DigiLibrary Development Team",
+        email: "dev@digilibrary.com"
       }
     },
     servers: [

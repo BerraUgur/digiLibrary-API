@@ -81,9 +81,6 @@ const borrowBook = async (req, res) => {
       bookId: req.body?.bookId || 'N/A',
       dueDate: req.body?.dueDate || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Borrow Book Error:', error);
-    }
     res.status(500).json({ message: 'An error occurred while borrowing the book.' });
   }
 };
@@ -94,9 +91,6 @@ const getUserLoans = async (req, res) => {
     res.status(200).json(loans);
   } catch (error) {
     await logErrorDetails('Get User Loans Failed', error, req, {});
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Get User Loans Error:', error);
-    }
     res.status(500).json({ message: 'An error occurred while listing borrowed books.' });
   }
 };
@@ -161,9 +155,6 @@ const returnBook = async (req, res) => {
     await logErrorDetails('Return Book Failed', error, req, {
       loanId: req.params?.loanId || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Return Book Error:', error);
-    }
     res.status(500).json({ message: 'An error occurred while returning the book.', error: error.message });
   }
 };
@@ -213,9 +204,6 @@ const getAllLoansAdmin = async (req, res) => {
       status: req.query?.status || 'all',
       overdue: req.query?.overdue || 'false'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Get All Loans Error:', error);
-    }
     res.status(500).json({ message: 'An error occurred while loading loans.' });
   }
 };
@@ -263,9 +251,6 @@ const getLateFeeStats = async (req, res) => {
     });
   } catch (error) {
     await logErrorDetails('Get Late Fee Stats Failed', error, req, {});
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Get Late Fee Stats Error:', error);
-    }
     res.status(500).json({ message: 'An error occurred while loading statistics.' });
   }
 };
@@ -288,9 +273,6 @@ const waiveLateFee = async (req, res) => {
     await logErrorDetails('Waive Late Fee Failed', error, req, {
       loanId: req.params?.loanId || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Waive Late Fee Error:', error);
-    }
     res.status(500).json({ message: 'An error occurred while waiving the fee.' });
   }
 };
@@ -313,9 +295,6 @@ const getUserLateFeeHistory = async (req, res) => {
     });
   } catch (error) {
     await logErrorDetails('Get User Late Fee History Failed', error, req, {});
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Get Late Fee History Error:', error);
-    }
     res.status(500).json({ message: 'An error occurred while loading late fee history.' });
   }
 };

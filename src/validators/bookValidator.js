@@ -71,7 +71,10 @@ const validateCreateBook = (req, res, next) => {
   }
 
   if (errors.length) {
-    console.warn('[validateCreateBook] validation errors:', errors);
+    logEvents(
+      `[OPERATION] Validation Failed\n[ERRORS] ${JSON.stringify(errors)}\n[VALIDATOR] bookValidator.validateCreateBook`,
+      'errLog.log'
+    );
     return res.status(400).json({ message: 'Validation failed', errors });
   }
 

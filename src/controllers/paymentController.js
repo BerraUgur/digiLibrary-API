@@ -46,9 +46,6 @@ const createCheckoutSession = async (req, res) => {
     await logErrorDetails('Create Checkout Session Failed', error, req, {
       bookId: req.body?.bookId || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Create Checkout Session Error:', error);
-    }
     res.status(500).json({ success: false, message: 'An error occurred while creating payment session.', error: error.message });
   }
 };
@@ -79,9 +76,6 @@ const handleWebhook = async (req, res) => {
         bookId: session.metadata?.bookId || 'N/A',
         eventType: event.type
       });
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('🔴 Webhook Processing Error:', error);
-      }
       return res.status(500).json({ success: false, message: 'Post-payment processing error' });
     }
   }
@@ -144,9 +138,6 @@ const createLateFeeCheckoutSession = async (req, res) => {
     await logErrorDetails('Create Late Fee Checkout Session Failed', error, req, {
       loanId: req.body?.loanId || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Create Late Fee Session Error:', error);
-    }
     res.status(500).json({ 
       success: false, 
       message: 'Error creating payment session', 
@@ -182,9 +173,6 @@ const confirmLateFeePayment = async (req, res) => {
     await logErrorDetails('Confirm Late Fee Payment Failed', error, req, {
       loanId: req.body?.loanId || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Confirm Late Fee Payment Error:', error);
-    }
     res.status(500).json({ 
       success: false, 
       message: 'Error confirming payment', 

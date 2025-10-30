@@ -41,7 +41,7 @@ Due Date: ${dueDate.toLocaleDateString('en-US')}
 
 Please remember to return the book on time. Late returns incur a daily fee of 5 TL.
 
-Library Team
+DigiLibrary Team
           `.trim();
           
           await sendReminderEmail(user.email, subject, text);
@@ -55,9 +55,6 @@ Library Team
             `[OPERATION] Reminder Email Failed\n[ERROR] ${emailError.message}\n[RECIPIENT] ${loan.user?.email}\n[BOOK] ${book?.title}\n[STACK]\n${emailError.stack}`,
             'errLog.log'
           );
-          if (process.env.NODE_ENV !== 'production') {
-            console.error(`🔴 Failed to send reminder to ${loan.user?.email}:`, emailError);
-          }
         }
       }
       
@@ -66,9 +63,6 @@ Library Team
         `[OPERATION] Reminder Cron Job Failed\n[ERROR] ${error.message}\n[TIME] ${new Date().toISOString()}\n[STACK]\n${error.stack}`,
         'errLog.log'
       );
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('🔴 Error in reminder cron job:', error);
-      }
     }
   });
 };
@@ -103,9 +97,6 @@ const startLateFeeCalculation = () => {
         `[OPERATION] Late Fee Calculation Failed\n[ERROR] ${error.message}\n[TIME] ${new Date().toISOString()}\n[STACK]\n${error.stack}`,
         'errLog.log'
       );
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('🔴 Error in late fee calculation cron job:', error);
-      }
     }
   });
 };

@@ -39,7 +39,7 @@ const sendContactMessage = async (req, res) => {
           </div>
           <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 20px 0;">
           <p style="color: #666; font-size: 12px;">
-            This message was sent via the digital library contact form.
+            This message was sent via the DigiLibrary contact form.
           </p>
         </div>
       `;
@@ -48,7 +48,7 @@ const sendContactMessage = async (req, res) => {
       await sendEmail('info@dijitalkutuphane.com', emailSubject, emailBody);
 
       // Send confirmation email to user
-      const confirmationSubject = 'Message Received - Digital Library';
+      const confirmationSubject = 'Message Received - DigiLibrary';
       const confirmationBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #3b82f6;">Hello ${name},</h2>
@@ -61,9 +61,9 @@ const sendContactMessage = async (req, res) => {
           <p>Happy reading!</p>
           <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 20px 0;">
           <p style="color: #666; font-size: 12px;">
-            <strong>Digital Library Team</strong><br>
-            Library Street, No: 23, Kadiköy, Istanbul<br>
-            info@dijitalkutuphane.com | +90 (216) 555 12 34
+            <strong>DigiLibrary Team</strong><br>
+            DigiLibrary Street, No: 23, Kadiköy, Istanbul<br>
+            info@digilibrary.com | +90 (216) 555 12 34
           </p>
         </div>
       `;
@@ -76,9 +76,6 @@ const sendContactMessage = async (req, res) => {
         recipientEmail: email,
         adminEmail: 'info@dijitalkutuphane.com'
       });
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn('⚠️ Email sending failed, but message will be saved:', emailError.message);
-      }
     }
 
     const contactMessage = new Contact({
@@ -103,9 +100,6 @@ const sendContactMessage = async (req, res) => {
       email: req.body?.email || 'N/A',
       subject: req.body?.subject || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Contact Message Error:', error);
-    }
     res.status(500).json({ 
       message: 'An error occurred while sending your message. Please try again later.',
       success: false
@@ -175,9 +169,6 @@ const getAllMessages = async (req, res) => {
       page: req.query?.page || '1',
       status: req.query?.status || 'all'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Get Messages Error:', error);
-    }
     res.status(500).json({ 
       message: 'An error occurred while retrieving messages.',
       success: false
@@ -209,9 +200,6 @@ const markAsRead = async (req, res) => {
     await logErrorDetails('Mark Message As Read Failed', error, req, {
       messageId: req.params?.id || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Mark As Read Error:', error);
-    }
     res.status(500).json({ 
       message: 'An error occurred while updating the message.',
       success: false
@@ -263,9 +251,9 @@ const replyToMessage = async (req, res) => {
           <p>Happy reading!</p>
           <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 20px 0;">
           <p style="color: #666; font-size: 12px;">
-            <strong>Digital Library Team</strong><br>
-            Library Street, No: 23, Kadiköy, Istanbul<br>
-            info@digitallibrary.com | +90 (216) 555 12 34
+            <strong>DigiLibrary Team</strong><br>
+            DigiLibrary Street, No: 23, Kadiköy, Istanbul<br>
+            info@digilibrary.com | +90 (216) 555 12 34
           </p>
         </div>
       `;
@@ -277,9 +265,6 @@ const replyToMessage = async (req, res) => {
         recipientEmail: message.email,
         messageId: id
       });
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn('⚠️ Reply email failed to send, but reply was saved to database:', emailError.message);
-      }
     }
 
     res.status(200).json({ 
@@ -293,9 +278,6 @@ const replyToMessage = async (req, res) => {
       messageId: req.params?.id || 'N/A',
       replyLength: req.body?.replyMessage?.length || 0
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Reply To Message Error:', error);
-    }
     res.status(500).json({ 
       message: 'An error occurred while sending the reply.',
       success: false
@@ -328,10 +310,10 @@ const sendNewMessageToUser = async (req, res) => {
     const userName = existingMessage ? existingMessage.name : 'User';
 
     try {
-      const emailSubject = `Digital Library - ${subject}`;
+      const emailSubject = `DigiLibrary - ${subject}`;
       const emailBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #3b82f6;">Message from Digital Library</h2>
+          <h2 style="color: #3b82f6;">Message from DigiLibrary</h2>
           <div style="background: #f0f9ff; padding: 20px; border-left: 4px solid #3b82f6; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #1e40af;">${subject}</h3>
             <p style="white-space: pre-wrap; line-height: 1.6;">${message}</p>
@@ -339,9 +321,9 @@ const sendNewMessageToUser = async (req, res) => {
           <p>Happy reading!</p>
           <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 20px 0;">
           <p style="color: #666; font-size: 12px;">
-            <strong>Digital Library Team</strong><br>
-            Library Street, No: 23, Kadiköy, Istanbul<br>
-            info@digitallibrary.com | +90 (216) 555 12 34
+            <strong>DigiLibrary Team</strong><br>
+            DigiLibrary Street, No: 23, Kadiköy, Istanbul<br>
+            info@digilibrary.com | +90 (216) 555 12 34
           </p>
         </div>
       `;
@@ -349,14 +331,10 @@ const sendNewMessageToUser = async (req, res) => {
       await sendEmail(email, emailSubject, emailBody);
 
     } catch (emailError) {
-      // For admin-initiated messages, email failure IS critical - return error
       await logErrorDetails('Admin Message Email Sending Failed', emailError, req, {
-        targetEmail: email,
-        subject: subject
+        targetEmail: req.body?.email || 'N/A',
+        subject: req.body?.subject || 'N/A'
       });
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('🔴 Admin message email failed:', emailError.message);
-      }
       return res.status(500).json({ 
         message: 'An error occurred while sending email.',
         success: false
@@ -388,9 +366,6 @@ const sendNewMessageToUser = async (req, res) => {
       targetEmail: req.body?.email || 'N/A',
       subject: req.body?.subject || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Send Message Error:', error);
-    }
     res.status(500).json({ 
       message: 'An error occurred while sending the message.',
       success: false
@@ -409,9 +384,6 @@ const getUnreadCount = async (req, res) => {
 
   } catch (error) {
     await logErrorDetails('Get Unread Count Failed', error, req, {});
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Get Unread Count Error:', error);
-    }
     res.status(500).json({ 
       message: 'Failed to get unread message count.',
       success: false,
@@ -439,9 +411,6 @@ const deleteMessage = async (req, res) => {
     await logErrorDetails('Delete Message Failed', error, req, {
       messageId: req.params?.id || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Delete Message Error:', error);
-    }
     res.status(500).json({ 
       message: 'An error occurred while deleting the message.',
       success: false

@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { logEvents } = require('../middleware/logEvents');
+const { logEvents, logErrorDetails } = require('../middleware/logEvents');
 const Book = require("../models/Book.js");
 const Loan = require('../models/Loan');
 const Favorite = require('../models/Favorite');
@@ -125,9 +125,12 @@ const getAllBooks = async (req, res) => {
       `Get All Books Failed\tError: ${error.message}\tCategory: ${req.query?.category || 'All'}\tSortBy: ${req.query?.sortBy || 'None'}\tStats: ${req.query?.stats || 'false'}\tUser: ${req.user?.id || 'Guest'}\tStack: ${error.stack}`,
       'errLog.log'
     );
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('❌ Get Books Error:', error);
-    }
+    logErrorDetails('Get All Books Failed', error, req, {
+      category: req.query?.category,
+      sortBy: req.query?.sortBy,
+      stats: req.query?.stats,
+      userId: req.user?.id,
+    });
     return res.status(500).json({ message: 'An error occurred while retrieving books.' });
   }
 };
@@ -145,9 +148,9 @@ const getBookById = async (req, res) => {
       `Get Book By ID Failed\tError: ${error.message}\tBookID: ${req.params?.id || 'N/A'}\tStack: ${error.stack}`,
       'errLog.log'
     );
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('❌ Get Book Error:', error);
-    }
+    logErrorDetails('Get Book By ID Failed', error, req, {
+      bookId: req.params?.id,
+    });
     res.status(500).json({ message: 'An error occurred while retrieving the book.' });
   }
 };
@@ -194,9 +197,12 @@ const createBook = async (req, res) => {
       `Create Book Failed\tError: ${error.message}\tTitle: ${req.body?.title || 'N/A'}\tAuthor: ${req.body?.author || 'N/A'}\tUser: ${req.user?.id || 'N/A'}\tHasImage: ${req.file ? 'Yes' : 'No'}\tStack: ${error.stack}`,
       'errLog.log'
     );
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('❌ Create Book Error:', error);
-    }
+    logErrorDetails('Create Book Failed', error, req, {
+      title: req.body?.title,
+      author: req.body?.author,
+      userId: req.user?.id,
+      hasImage: req.file ? 'Yes' : 'No',
+    });
     res.status(400).json({ message: 'An error occurred while adding the book.' });
   }
 };
@@ -257,9 +263,12 @@ const updateBook = async (req, res) => {
       `Update Book Failed\tError: ${error.message}\tBookID: ${req.params?.id || 'N/A'}\tUser: ${req.user?.id || 'N/A'}\tHasNewImage: ${req.file ? 'Yes' : 'No'}\tErrorType: ${error.name}\tStack: ${error.stack}`,
       'errLog.log'
     );
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('❌ Update Book Error:', error);
-    }
+    logErrorDetails('Update Book Failed', error, req, {
+      bookId: req.params?.id,
+      userId: req.user?.id,
+      hasNewImage: req.file ? 'Yes' : 'No',
+      errorType: error.name,
+    });
     if (error.name === 'CastError') {
       return res.status(400).json({ message: 'Invalid book id.' });
     }
@@ -286,9 +295,9 @@ const streamImage = async (req, res) => {
       `Stream Image Failed\tError: ${error.message}\tImageID: ${req.params?.id || 'N/A'}\tStack: ${error.stack}`,
       'errLog.log'
     );
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('❌ Stream Image Error:', error);
-    }
+    logErrorDetails('Stream Image Failed', error, req, {
+      imageId: req.params?.id,
+    });
     res.status(500).json({ message: 'Error streaming image' });
   }
 };
@@ -310,9 +319,10 @@ const deleteBook = async (req, res) => {
       `Delete Book Failed\tError: ${error.message}\tBookID: ${req.params?.id || 'N/A'}\tUser: ${req.user?.id || 'N/A'}\tStack: ${error.stack}`,
       'errLog.log'
     );
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('❌ Delete Book Error:', error);
-    }
+    logErrorDetails('Delete Book Failed', error, req, {
+      bookId: req.params?.id,
+      userId: req.user?.id,
+    });
     res.status(400).json({ message: 'An error occurred while deleting the book.' });
   }
 };
@@ -338,9 +348,7 @@ const getLibraryStats = async (req, res) => {
       `Get Library Stats Failed\tError: ${error.message}\tStack: ${error.stack}`,
       'errLog.log'
     );
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('❌ Get Library Stats Error:', error);
-    }
+    logErrorDetails('Get Library Stats Failed', error, req);
     res.status(500).json({ message: 'An error occurred while retrieving statistics.' });
   }
 };
@@ -421,9 +429,10 @@ const getPopularBooks = async (req, res) => {
       `Get Popular Books Failed\tError: ${error.message}\tLimit: ${req.query?.limit || '6'}\tDays: ${req.query?.days || '30'}\tStack: ${error.stack}`,
       'errLog.log'
     );
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('❌ Get Popular Books Error:', error);
-    }
+    logErrorDetails('Get Popular Books Failed', error, req, {
+      limit: req.query?.limit,
+      days: req.query?.days,
+    });
     res.status(500).json({ message: 'Failed to load popular books.' });
   }
 };

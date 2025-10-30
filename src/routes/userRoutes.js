@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 const { verifyAccessToken, authorizeRoles } = require('../middleware/auth');
-const ROLES = require('../constants/roles');
+const ROLES = require('../constants/rolesConstants');
 const { addFavorite, getFavorites, removeFavorite } = require('../controllers/favoriteController');
 
 // User profile routes

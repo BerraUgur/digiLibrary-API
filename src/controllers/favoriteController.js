@@ -26,9 +26,6 @@ const addFavorite = async (req, res) => {
     await logErrorDetails('Add Favorite Failed', error, req, {
       bookId: req.body?.bookId || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Add Favorite Error:', error);
-    }
     res.status(500).json({ message: 'Failed to add favorite', error: error.message });
   }
 };
@@ -41,9 +38,6 @@ const getFavorites = async (req, res) => {
     res.status(200).json({ favorites });
   } catch (error) {
     await logErrorDetails('Get Favorites Failed', error, req, {});
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Get Favorites Error:', error);
-    }
     res.status(500).json({ message: 'Failed to fetch favorites', error: error.message });
   }
 };
@@ -58,9 +52,6 @@ const removeFavorite = async (req, res) => {
     await logErrorDetails('Remove Favorite Failed', error, req, {
       favoriteId: req.params?.favoriteId || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Remove Favorite Error:', error);
-    }
     res.status(500).json({ message: 'Failed to remove favorite', error: error.message });
   }
 };

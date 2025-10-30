@@ -6,7 +6,7 @@ const { accessToken, refreshToken, passwordReset } = require("../config/jwtConfi
 const RefreshToken = require("../models/RefreshToken");
 const User = require("../models/User");
 const PasswordReset = require("../models/PasswordReset");
-const ROLES = require('../constants/roles');
+const ROLES = require('../constants/rolesConstants');
 const { sendPasswordResetEmail } = require('../services/mailService');
 
 // Generate JWT access and refresh tokens for user authentication
@@ -46,9 +46,6 @@ const registerUser = async (req, res) => {
       username: sanitizedBody?.username || 'N/A',
       role: sanitizedBody?.role || ROLES.USER
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Registration Error:', error);
-    }
     res.status(500).json({ message: "An error occurred while saving the user." });
   }
 };
@@ -94,9 +91,6 @@ const loginUser = async (req, res) => {
     await logErrorDetails('User Login Failed', error, req, {
       email: sanitizedBody?.email || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Login Error:', error);
-    }
     res.status(500).json({ message: "An error occurred during user login." });
   }
 };
@@ -145,9 +139,6 @@ const refreshTokens = async (req, res) => {
     await logErrorDetails('Token Refresh Failed', error, req, {
       'old token': oldRefreshToken ? 'Provided' : 'Missing'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Token Refresh Error:', error);
-    }
     res.status(500).json({ message: "An error occurred during token refresh." });
   }
 };
@@ -167,9 +158,6 @@ const logout = async (req, res) => {
     await logErrorDetails('User Logout Failed', error, req, {
       'cookies present': !!req.cookies.refreshToken
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Logout Error:', error);
-    }
     res.status(500).json({ message: "An error occurred during logout." });
   }
 };
@@ -209,9 +197,6 @@ const requestPasswordReset = async (req, res) => {
     await logErrorDetails('Password Reset Request Failed', error, req, {
       email: email
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Password Reset Request Error:', error);
-    }
     res.status(500).json({ message: "An error occurred while processing password reset request." });
   }
 };
@@ -255,9 +240,6 @@ const resetPassword = async (req, res) => {
       'token valid': !!resetRecord,
       'user email': resetRecord?.email || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Password Reset Error:', error);
-    }
     res.status(500).json({ message: "An error occurred while resetting password." });
   }
 };

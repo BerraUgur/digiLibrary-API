@@ -19,9 +19,6 @@ const addReview = async (req, res) => {
       bookId: req.body?.bookId || 'N/A',
       rating: req.body?.rating || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Add Review Error:', error);
-    }
     res.status(500).json({ message: 'An error occurred while adding the review.' });
   }
 };
@@ -45,9 +42,6 @@ const deleteReview = async (req, res) => {
     await logErrorDetails('Delete Review Failed', error, req, {
       reviewId: req.params?.reviewId || 'N/A'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Delete Review Error:', error);
-    }
     res.status(500).json({ message: 'An error occurred while deleting the review.' });
   }
 };
@@ -64,9 +58,6 @@ const getReviews = async (req, res) => {
     await logErrorDetails('Get Reviews Failed', error, req, {
       bookId: req.query?.bookId || 'all'
     });
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Get Reviews Error:', error);
-    }
     res.status(500).json({ message: 'An error occurred while retrieving the reviews.' });
   }
 };
@@ -80,9 +71,6 @@ const getUserReviews = async (req, res) => {
     res.status(200).json(reviews);
   } catch (error) {
     await logErrorDetails('Get User Reviews Failed', error, req, {});
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Get User Reviews Error:', error);
-    }
     res.status(500).json({ message: 'An error occurred while loading reviews.' });
   }
 };
@@ -101,9 +89,6 @@ const getAllReviews = async (req, res) => {
     res.status(200).json(reviews);
   } catch (error) {
     await logErrorDetails('Get All Reviews Failed', error, req, {});
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('🔴 Get All Reviews Error:', error);
-    }
     res.status(500).json({ message: 'An error occurred while loading reviews.' });
   }
 };

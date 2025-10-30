@@ -66,6 +66,7 @@ app.use("/api/loans", loanRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/logs", logRoutes);
 
 // ============ ERROR HANDLING ============
 app.use(errorHandler); // Global error handler

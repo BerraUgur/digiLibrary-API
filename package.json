@@ -1,7 +1,7 @@
 {
-  "name": "online-library-management-system",
+  "name": "DigiLibrary",
   "version": "1.0.0",
-  "description": "Backend for Online Library Management System",
+  "description": "Backend for DigiLibrary",
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",

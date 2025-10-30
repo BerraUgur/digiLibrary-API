@@ -1,4 +1,4 @@
-# 📚 Digital Library API
+# 📚 DigiLibrary API
 
 A comprehensive RESTful API for a digital library management system built with Node.js, Express, and MongoDB.
 
@@ -38,7 +38,7 @@ A comprehensive RESTful API for a digital library management system built with N
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/BerraUgur/odev5.git
+git clone https://github.com/BerraUgur/DigiLibrary.git
 cd backend
 ```
 
@@ -62,7 +62,7 @@ NODE_ENV=development
 PORT=5000
 
 # Database
-MONGO_URI=mongodb://localhost:27017/library
+MONGO_URI=mongodb://localhost:27017/DigiLibrary
 
 # Email (Gmail)
 EMAIL_USER=your-email@gmail.com

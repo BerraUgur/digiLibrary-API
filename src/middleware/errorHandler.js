@@ -9,11 +9,6 @@ const errorHandler = (err, req, res, _next) => {
     requestBody: JSON.stringify(req.body || {})
   });
 
-  // Log to console in development
-  if (process.env.NODE_ENV !== "production") {
-    console.error('🔴 Global Error Handler:', err.stack);
-  }
-
   // Determine appropriate status code
   const status = res.statusCode === 200 ? 500 : res.statusCode;
   res.status(status);

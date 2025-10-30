@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const contactController = require('../controllers/contactController');
 const { verifyAccessToken, authorizeRoles } = require('../middleware/auth');
-const ROLES = require('../constants/roles');
+const ROLES = require('../constants/rolesConstants');
 
 // Public routes
 /**
