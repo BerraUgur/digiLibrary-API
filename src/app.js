@@ -19,6 +19,7 @@ const loanRoutes = require("./routes/loanRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const userRoutes = require("./routes/userRoutes");
+const logRoutes = require("./routes/logRoutes");
 
 const app = express();
 

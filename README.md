@@ -104,7 +104,6 @@ npm start
 ```
 
 ## 🔗 API Endpoints
-
 Base URL: `http://localhost:3000/api`
 
 ### 🔐 Authentication
@@ -195,21 +194,4 @@ backend/
 - Ensure "Less secure app access" is NOT enabled (use App Password instead)
 
 ## 📄 License
-
 This project is licensed under the MIT License.
-
-## 👨‍💻 Author
-
-**Berra Uğur**
-- GitHub: [@BerraUgur](https://github.com/BerraUgur)
-
-## 🙏 Acknowledgments
-
-- Express.js documentation
-- MongoDB documentation
-- Stripe API documentation
-- JWT best practices
-
-## 📞 Support
-
-For support, email your-email@example.com or open an issue on GitHub.
