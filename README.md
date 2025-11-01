@@ -38,8 +38,8 @@ A comprehensive RESTful API for a digital library management system built with N
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/BerraUgur/DigiLibrary.git
-cd backend
+git clone https://github.com/BerraUgur/DigiLibrary-API.git
+cd DigiLibrary-API
 ```
 
 2. **Install dependencies**

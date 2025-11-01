@@ -32,22 +32,27 @@ app.get('/', (req, res) => {
 });
 
 // ============ SECURITY MIDDLEWARE ============
+// CORS configuration
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
+// Security headers
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 // Rate limiting: 100 requests per 15 minutes per IP
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Too many requests, please try again later'
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Max 100 requests per window
+  standardHeaders: true, // Return rate limit info in headers
+  legacyHeaders: false, // Disable X-RateLimit-* headers
+  message: { error: 'Too many requests, please try again later' }
 });
-app.use(limiter);
+app.use('/api/', limiter);
 
-app.use(mongoSanitize()); // Prevent NoSQL injection
+// Prevent NoSQL injection attacks
+app.use(mongoSanitize());
 
 // ============ STANDARD MIDDLEWARE ============
 app.use(express.json());
