@@ -11,7 +11,10 @@ const corsOptions = {
       "http://127.0.0.1:3000",
     ];
 
-    const isWhitelisted = !origin || whiteList.includes(origin) || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+    // Allow requests with no origin (like mobile apps, Postman, or server-to-server)
+    const isWhitelisted = !origin || 
+                         whiteList.includes(origin) || 
+                         /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
 
     if (isWhitelisted) {
       callback(null, true);
@@ -24,8 +27,8 @@ const corsOptions = {
     }
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  exposedHeaders: ["Authorization", "Content-Length", "X-Request-Id"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  exposedHeaders: ["Authorization", "Content-Length", "X-Request-Id", "Set-Cookie"],
   credentials: true,
   optionsSuccessStatus: 200,
   maxAge: 86400, // 24 hours

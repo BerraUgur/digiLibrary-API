@@ -50,7 +50,7 @@ const sendEmail = async (to, subject, html) => {
 
 // Send password reset email with token
 const sendPasswordResetEmail = async (to, resetToken) => {
-  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
   
   const subject = 'Password Reset Request - DigiLibrary';
   const html = `

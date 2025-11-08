@@ -31,14 +31,44 @@ app.get('/', (req, res) => {
   res.redirect('/api-docs');
 });
 
+// ============ STANDARD MIDDLEWARE (Must be before CORS) ============
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
 // ============ SECURITY MIDDLEWARE ============
-// CORS configuration
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+// Conditional CORS - skip for Iyzico callbacks
+app.use((req, res, next) => {
+  // Skip CORS for Iyzico callback endpoints
+  if (req.path === '/api/payments/iyzico-callback' || req.path === '/api/payments/iyzico-book-callback') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    return next();
+  }
+  // Apply normal CORS for other routes
+  cors(corsOptions)(req, res, next);
+});
+
+app.options('*', (req, res, next) => {
+  // Skip CORS for Iyzico callback endpoints
+  if (req.path === '/api/payments/iyzico-callback' || req.path === '/api/payments/iyzico-book-callback') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return res.sendStatus(200);
+  }
+  cors(corsOptions)(req, res, next);
+});
 
 // Security headers
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: false, // Disable for Iyzico iframe
+  frameguard: false // Allow iframe embedding for Iyzico
 }));
 
 // Rate limiting: 100 requests per 15 minutes per IP
@@ -54,10 +84,6 @@ app.use('/api/', limiter);
 // Prevent NoSQL injection attacks
 app.use(mongoSanitize());
 
-// ============ STANDARD MIDDLEWARE ============
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
 app.use(logger);
 
 // ============ STATIC FILES ============

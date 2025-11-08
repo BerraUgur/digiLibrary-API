@@ -80,7 +80,7 @@ const getAllBooks = async (req, res) => {
       let query = Book.find(baseMatch);
       
       if (sortBy) {
-        query = query.sort({ [sortBy]: sortDirection }).collation({ locale: 'tr', strength: 2 });
+        query = query.sort({ [sortBy]: sortDirection }).collation({ locale: 'en', strength: 2 });
       }
       
       const plain = await query;
@@ -107,7 +107,7 @@ const getAllBooks = async (req, res) => {
       pipeline.push({ $sort: { [sortBy]: sortDirection } });
     }
     
-    const aggregated = await Book.aggregate(pipeline).collation({ locale: 'tr', strength: 2 });
+    const aggregated = await Book.aggregate(pipeline).collation({ locale: 'en', strength: 2 });
 
     // Mark user's favorite books using Map for O(1) lookup performance
     let favMap = new Map();

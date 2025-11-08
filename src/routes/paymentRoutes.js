@@ -5,7 +5,7 @@ const paymentController = require('../controllers/paymentController');
 
 /**
  * @swagger
- * /api/payments/create-checkout-session:
+ * /api/payments/create-stripe-checkout-session:
  *   post:
  *     summary: Create Stripe checkout session for book purchase
  *     description: Creates a Stripe checkout session and redirects user to payment page
@@ -49,11 +49,61 @@ const paymentController = require('../controllers/paymentController');
  *       500:
  *         description: Server error
  */
-router.post('/create-checkout-session', verifyAccessToken, paymentController.createCheckoutSession);
+router.post('/create-stripe-checkout-session', verifyAccessToken, paymentController.createCheckoutSession);
 
 /**
  * @swagger
- * /api/payments/webhook:
+ * /api/payments/create-iyzico-checkout-session:
+ *   post:
+ *     summary: Create Iyzico checkout session for book purchase
+ *     description: Creates an Iyzico checkout session and redirects user to payment page
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - bookId
+ *             properties:
+ *               bookId:
+ *                 type: string
+ *                 description: MongoDB ObjectId of the book to purchase
+ *                 example: "507f1f77bcf86cd799439011"
+ *     responses:
+ *       200:
+ *         description: Checkout session created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   description: Iyzico token
+ *                 paymentPageUrl:
+ *                   type: string
+ *                   description: Iyzico payment page URL
+ *                 checkoutFormContent:
+ *                   type: string
+ *                   description: HTML content for embedded checkout
+ *       400:
+ *         description: Bad request - missing required fields or book unavailable
+ *       401:
+ *         description: Unauthorized - invalid or missing token
+ *       403:
+ *         description: Forbidden - admins cannot purchase books
+ *       500:
+ *         description: Server error
+ */
+router.post('/create-iyzico-checkout-session', verifyAccessToken, paymentController.createIyzicoCheckoutSession);
+
+/**
+ * @swagger
+ * /api/payments/stripe-webhook:
  *   post:
  *     summary: Stripe webhook endpoint
  *     description: Handles Stripe webhook events (payment success, failure, etc.)
@@ -71,11 +121,40 @@ router.post('/create-checkout-session', verifyAccessToken, paymentController.cre
  *       400:
  *         description: Webhook signature verification failed
  */
-router.post('/webhook', express.raw({ type: 'application/json' }), paymentController.handleWebhook);
+router.post('/stripe-webhook', express.raw({ type: 'application/json' }), paymentController.handleWebhook);
 
 /**
  * @swagger
- * /api/payments/create-late-fee-checkout:
+ * /api/payments/iyzico-book-callback:
+ *   post:
+ *     summary: Iyzico callback endpoint for book purchases
+ *     description: Handles Iyzico callback after book purchase payment completion
+ *     tags: [Payments]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Iyzico token from callback
+ *     responses:
+ *       302:
+ *         description: Redirects to frontend with payment status
+ *       400:
+ *         description: Bad request - token missing
+ *       500:
+ *         description: Server error
+ */
+router.post('/iyzico-book-callback', paymentController.handleIyzicoBookCallback);
+
+/**
+ * @swagger
+ * /api/payments/create-stripe-late-fee-checkout:
  *   post:
  *     summary: Create Stripe checkout session for late fee payment
  *     description: Creates a Stripe checkout session for paying overdue book late fees
@@ -116,11 +195,11 @@ router.post('/webhook', express.raw({ type: 'application/json' }), paymentContro
  *       500:
  *         description: Server error
  */
-router.post('/create-late-fee-checkout', verifyAccessToken, paymentController.createLateFeeCheckoutSession);
+router.post('/create-stripe-late-fee-checkout', verifyAccessToken, paymentController.createLateFeeCheckoutSession);
 
 /**
  * @swagger
- * /api/payments/confirm-late-fee-payment:
+ * /api/payments/confirm-stripe-late-fee-payment:
  *   post:
  *     summary: Confirm late fee payment after Stripe checkout
  *     description: Confirms successful payment and updates loan status, removes ban if applicable
@@ -161,6 +240,83 @@ router.post('/create-late-fee-checkout', verifyAccessToken, paymentController.cr
  *       500:
  *         description: Server error
  */
-router.post('/confirm-late-fee-payment', verifyAccessToken, paymentController.confirmLateFeePayment);
+router.post('/confirm-stripe-late-fee-payment', verifyAccessToken, paymentController.confirmLateFeePayment);
+
+/**
+ * @swagger
+ * /api/payments/create-late-fee-iyzico-checkout:
+ *   post:
+ *     summary: Create Iyzico checkout session for late fee payment
+ *     description: Creates an Iyzico checkout session for paying overdue book late fees
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - loanId
+ *             properties:
+ *               loanId:
+ *                 type: string
+ *                 description: MongoDB ObjectId of the loan with late fees
+ *                 example: "507f1f77bcf86cd799439011"
+ *     responses:
+ *       200:
+ *         description: Checkout session created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   description: Iyzico token
+ *                 paymentPageUrl:
+ *                   type: string
+ *                   description: Iyzico payment page URL
+ *                 checkoutFormContent:
+ *                   type: string
+ *                   description: HTML content for embedded checkout
+ *       400:
+ *         description: No late fee to pay or loan not found
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.post('/create-late-fee-iyzico-checkout', verifyAccessToken, paymentController.createIyzicoLateFeeCheckout);
+
+/**
+ * @swagger
+ * /api/payments/iyzico-callback:
+ *   post:
+ *     summary: Iyzico callback endpoint
+ *     description: Handles Iyzico callback after payment completion
+ *     tags: [Payments]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Iyzico token from callback
+ *     responses:
+ *       302:
+ *         description: Redirects to frontend with payment status
+ *       400:
+ *         description: Bad request - token missing
+ *       500:
+ *         description: Server error
+ */
+router.post('/iyzico-callback', paymentController.handleIyzicoCallback);
 
 module.exports = router;
