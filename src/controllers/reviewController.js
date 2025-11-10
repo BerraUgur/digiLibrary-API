@@ -1,14 +1,22 @@
 const { logErrorDetails } = require('../middleware/logEvents');
 const Review = require('../models/Review');
+const Loan = require('../models/Loan');
 
 const addReview = async (req, res) => {
   try {
     const { bookId, reviewText, rating } = req.body;
 
-    // Prevent duplicate reviews for same user+book (avoid unique index violation)
-    const existing = await Review.findOne({ user: req.user.id, book: bookId });
-    if (existing) {
-      return res.status(409).json({ message: 'You have already reviewed this book.' });
+    // Check if user has borrowed this book before (must have completed at least one loan)
+    const hasBorrowed = await Loan.findOne({
+      user: req.user.id,
+      book: bookId,
+      isReturned: true // Must have returned the book at least once
+    });
+
+    if (!hasBorrowed) {
+      return res.status(403).json({ 
+        message: 'You can only review books that you have borrowed and returned.' 
+      });
     }
 
     const review = new Review({
@@ -25,11 +33,6 @@ const addReview = async (req, res) => {
     
     res.status(201).json(review);
   } catch (error) {
-    // Handle duplicate key error gracefully in case the pre-check missed it
-    if (error && (error.code === 11000 || (error.name === 'MongoError' && error.message && error.message.includes('duplicate')))) {
-      return res.status(409).json({ message: 'You have already reviewed this book.' });
-    }
-
     await logErrorDetails('Add Review Failed', error, req, {
       bookId: req.body?.bookId || 'N/A',
       rating: req.body?.rating || 'N/A'

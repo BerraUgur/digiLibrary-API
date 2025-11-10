@@ -3,7 +3,7 @@ const app = require("./app");
 const connectDB = require("./config/dbConfig");
 const { startReminderCron, startLateFeeCalculation } = require('./services/reminderService');
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 /**
@@ -27,24 +27,17 @@ const startServer = async () => {
 
     // Graceful shutdown handlers
     const gracefulShutdown = async (signal) => {
-      console.log(`\n${signal} received. Starting graceful shutdown...`);
-
       server.close(async () => {
-        console.log('HTTP server closed');
-
         try {
           await require('mongoose').connection.close();
-          console.log('MongoDB connection closed');
           process.exit(0);
         } catch (err) {
-          console.error('Error during shutdown:', err);
           process.exit(1);
         }
       });
 
       // Force shutdown after 10 seconds
       setTimeout(() => {
-        console.error('Forced shutdown after timeout');
         process.exit(1);
       }, 10000);
     };
@@ -53,21 +46,17 @@ const startServer = async () => {
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
   } catch (error) {
-    console.error('❌ Failed to start server:', error.message);
-    console.error('Stack trace:', error.stack);
     process.exit(1);
   }
 };
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
   process.exit(1);
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
   process.exit(1);
 });
 

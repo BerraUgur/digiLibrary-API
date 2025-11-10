@@ -11,7 +11,7 @@ const reviewSchema = new mongoose.Schema({
 reviewSchema.index({ book: 1 });
 reviewSchema.index({ user: 1 });
 
-// Compound index: prevent duplicate reviews from same user for same book
-reviewSchema.index({ user: 1, book: 1 }, { unique: true });
+// Compound index for efficient queries (removed unique constraint to allow multiple reviews)
+reviewSchema.index({ user: 1, book: 1 });
 
 module.exports = mongoose.model('Review', reviewSchema);

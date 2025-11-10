@@ -160,12 +160,33 @@ const getBookById = async (req, res) => {
 
 const createBook = async (req, res) => {
   try {
-    const title = sanitizeField(req.body?.title);
-    const author = sanitizeField(req.body?.author);
-    const category = sanitizeField(req.body?.category);
+    const title_tr = sanitizeField(req.body?.title_tr);
+    const title_en = sanitizeField(req.body?.title_en);
+    const description_tr = sanitizeField(req.body?.description_tr);
+    const description_en = sanitizeField(req.body?.description_en);
+    
+    // Handle multiple authors
+    let authors = req.body?.author;
+    if (Array.isArray(authors)) {
+      authors = authors.map(a => sanitizeField(a)).filter(a => a);
+    } else {
+      const singleAuthor = sanitizeField(authors);
+      authors = singleAuthor ? [singleAuthor] : [];
+    }
+    
+    // Handle multiple categories
+    let categories = req.body?.category;
+    if (Array.isArray(categories)) {
+      categories = categories.map(c => sanitizeField(c)).filter(c => c).map(c => normalizeCategory(c));
+    } else {
+      const singleCategory = sanitizeField(categories);
+      categories = singleCategory ? [normalizeCategory(singleCategory)] : [];
+    }
+    
     const providedImageUrl = sanitizeField(req.body?.imageUrl);
-    if (!title || !author || !category) {
-      return res.status(400).json({ message: 'Please fill in all fields: title, author, category.' });
+    
+    if (!title_tr || !title_en || !description_tr || !description_en || authors.length === 0 || categories.length === 0) {
+      return res.status(400).json({ message: 'Please fill in all required fields: title_tr, title_en, description_tr, description_en, author, category.' });
     }
     if (req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Only admins can add books.' });
@@ -183,12 +204,17 @@ const createBook = async (req, res) => {
       }
     } else if (providedImageUrl) {
       imageUrl = providedImageUrl;
+    } else {
+      return res.status(400).json({ message: 'Book image is required. Please upload an image or provide an image URL.' });
     }
 
     const newBook = new Book({
-      title,
-      author,
-      category: normalizeCategory(category),
+      title_tr,
+      title_en,
+      description_tr,
+      description_en,
+      author: authors,
+      category: categories,
       imageUrl,
       imageId: imageId || undefined
     });
@@ -197,11 +223,11 @@ const createBook = async (req, res) => {
     res.status(201).json(newBook);
   } catch (error) {
     await logEvents(
-      `Create Book Failed\tError: ${error.message}\tTitle: ${req.body?.title || 'N/A'}\tAuthor: ${req.body?.author || 'N/A'}\tUser: ${req.user?.id || 'N/A'}\tHasImage: ${req.file ? 'Yes' : 'No'}\tStack: ${error.stack}`,
+      `Create Book Failed\tError: ${error.message}\tTitle: ${req.body?.title_tr || 'N/A'}\tAuthor: ${req.body?.author || 'N/A'}\tUser: ${req.user?.id || 'N/A'}\tHasImage: ${req.file ? 'Yes' : 'No'}\tStack: ${error.stack}`,
       'errLog.log'
     );
     logErrorDetails('Create Book Failed', error, req, {
-      title: req.body?.title,
+      title_tr: req.body?.title_tr,
       author: req.body?.author,
       userId: req.user?.id,
       hasImage: req.file ? 'Yes' : 'No',
@@ -215,7 +241,29 @@ const updateBook = async (req, res) => {
     const { id } = req.params;
 
     const updates = { ...req.body };
-    const fieldsToSanitize = ['title', 'author', 'category', 'imageUrl'];
+    
+    // Handle multiple authors
+    if (Object.prototype.hasOwnProperty.call(updates, 'author')) {
+      if (Array.isArray(updates.author)) {
+        updates.author = updates.author.map(a => sanitizeField(a)).filter(a => a);
+      } else {
+        const singleAuthor = sanitizeField(updates.author);
+        updates.author = singleAuthor ? [singleAuthor] : [];
+      }
+    }
+    
+    // Handle multiple categories
+    if (Object.prototype.hasOwnProperty.call(updates, 'category')) {
+      if (Array.isArray(updates.category)) {
+        updates.category = updates.category.map(c => sanitizeField(c)).filter(c => c).map(c => normalizeCategory(c));
+      } else {
+        const singleCategory = sanitizeField(updates.category);
+        updates.category = singleCategory ? [normalizeCategory(singleCategory)] : [];
+      }
+    }
+    
+    // Sanitize other fields
+    const fieldsToSanitize = ['title_tr', 'title_en', 'description_tr', 'description_en', 'imageUrl'];
     fieldsToSanitize.forEach((f) => {
       if (Object.prototype.hasOwnProperty.call(updates, f)) {
         updates[f] = sanitizeField(updates[f]);
@@ -251,12 +299,12 @@ const updateBook = async (req, res) => {
       book.imageUrl = updates.imageUrl || '';
     }
 
-    if (updates.category) {
-      book.category = normalizeCategory(updates.category);
-    }
-
-    if (updates.title) book.title = updates.title;
-    if (updates.author) book.author = updates.author;
+    if (updates.title_tr) book.title_tr = updates.title_tr;
+    if (updates.title_en) book.title_en = updates.title_en;
+    if (updates.description_tr) book.description_tr = updates.description_tr;
+    if (updates.description_en) book.description_en = updates.description_en;
+    if (updates.author && updates.author.length > 0) book.author = updates.author;
+    if (updates.category && updates.category.length > 0) book.category = updates.category;
     if (typeof updates.available !== 'undefined') book.available = updates.available;
 
     await book.save();
@@ -387,7 +435,10 @@ const getPopularBooks = async (req, res) => {
       { $unwind: '$book' }, // Flatten book array
       { $project: {
           _id: '$book._id',
-          title: '$book.title',
+          title_tr: '$book.title_tr',
+          title_en: '$book.title_en',
+          description_tr: '$book.description_tr',
+          description_en: '$book.description_en',
           author: '$book.author',
           category: '$book.category',
           imageUrl: '$book.imageUrl',

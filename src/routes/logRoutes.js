@@ -52,8 +52,6 @@ router.post('/', limiter, async (req, res) => {
 
         return res.status(201).json({ status: 'logged' });
     } catch (err) {
-        // Fallback: log synchronous console error (this is server-side only)
-        console.error('Failed to persist UI log:', err);
         return res.status(500).json({ error: 'Failed to persist log' });
     }
 });

@@ -3,6 +3,7 @@ const Loan = require('../models/Loan');
 const Book = require('../models/Book');
 const User = require('../models/User');
 const { LATE_FEE_PER_DAY, BAN_MULTIPLIER, MAX_ACTIVE_LOANS, MS_PER_DAY } = require('../constants/loanConstants');
+const { formatDate } = require('../utils/dateFormatter');
 
 const borrowBook = async (req, res) => {
   try {
@@ -16,7 +17,7 @@ const borrowBook = async (req, res) => {
     
     // Ban system: users with late returns are temporarily banned from borrowing
     if (user.banUntil && user.banUntil > new Date()) {
-      const banDate = new Date(user.banUntil).toLocaleDateString('en-US');
+      const banDate = formatDate(user.banUntil);
       const remainingDays = Math.ceil((new Date(user.banUntil) - new Date()) / MS_PER_DAY);
       return res.status(403).json({ 
         message: `Your account is banned until ${banDate}. You can borrow books again in ${remainingDays} days.`,
@@ -39,9 +40,14 @@ const borrowBook = async (req, res) => {
       });
     }
 
+    // Check for unpaid late fees (lateFee > 0 AND lateFeePaid is false or missing)
     const unpaidLoans = await Loan.find({
       user: req.user.id,
-      lateFee: { $gt: 0 }
+      lateFee: { $gt: 0 },
+      $or: [
+        { lateFeePaid: { $exists: false } },
+        { lateFeePaid: false }
+      ]
     });
 
     if (unpaidLoans.length > 0) {
@@ -99,9 +105,19 @@ const returnBook = async (req, res) => {
   try {
     const { loanId } = req.params;
     const loan = await Loan.findById(loanId).populate('book user');
-    if (!loan || loan.isReturned) {
-      return res.status(400).json({ message: 'Invalid borrowing transaction.' });
+    
+    if (!loan) {
+      return res.status(404).json({ message: 'Loan record not found.' });
     }
+    
+    if (loan.isReturned) {
+      return res.status(400).json({ message: 'Book has already been returned.' });
+    }
+    
+    if (!loan.user) {
+      return res.status(400).json({ message: 'User information not found for this loan.' });
+    }
+    
     if (loan.user.role === 'admin') {
       return res.status(403).json({ message: 'Admins are not allowed to return books.' });
     }
@@ -119,14 +135,16 @@ const returnBook = async (req, res) => {
     // Automatic ban system
     if (lateDays > 0) {
       const user = await User.findById(loan.user._id);
-      let extraDays = lateDays * BAN_MULTIPLIER;
-      if (user.banUntil && user.banUntil > new Date()) {
-        const currentBan = user.banUntil;
-        user.banUntil = new Date(currentBan.getTime() + extraDays * MS_PER_DAY);
-      } else {
-        user.banUntil = new Date(returnDate.getTime() + extraDays * MS_PER_DAY);
+      if (user) {
+        let extraDays = lateDays * BAN_MULTIPLIER;
+        if (user.banUntil && user.banUntil > new Date()) {
+          const currentBan = user.banUntil;
+          user.banUntil = new Date(currentBan.getTime() + extraDays * MS_PER_DAY);
+        } else {
+          user.banUntil = new Date(returnDate.getTime() + extraDays * MS_PER_DAY);
+        }
+        await user.save();
       }
-      await user.save();
     }
 
     loan.isReturned = true;
@@ -134,9 +152,13 @@ const returnBook = async (req, res) => {
     loan.daysLate = lateDays;
     loan.lateFee = lateFee;
     
+    // Update book availability
     if (loan.book) {
-      loan.book.available = true;
-      await loan.book.save();
+      const book = await Book.findById(loan.book._id);
+      if (book) {
+        book.available = true;
+        await book.save();
+      }
     }
     
     await loan.save();
@@ -178,7 +200,7 @@ const getAllLoansAdmin = async (req, res) => {
     
     const loans = await Loan.find(query)
       .populate('user', 'username email')
-      .populate('book', 'title author imageUrl')
+      .populate('book', 'title_tr title_en description_tr description_en author imageUrl')
       .sort({ loanDate: -1 });
     
     const loansWithDaysLate = loans.map(loan => {
@@ -283,7 +305,7 @@ const getUserLateFeeHistory = async (req, res) => {
       user: req.user.id,
       lateFee: { $gt: 0 }
     })
-      .populate('book', 'title author imageUrl')
+      .populate('book', 'title_tr title_en description_tr description_en author imageUrl')
       .sort({ returnDate: -1 });
     
     const totalLateFees = loans.reduce((sum, loan) => sum + (loan.lateFee || 0), 0);

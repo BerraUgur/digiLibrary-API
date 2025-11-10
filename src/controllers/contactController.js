@@ -1,6 +1,7 @@
 const { sendEmail } = require('../services/mailService');
 const { logErrorDetails } = require('../middleware/logEvents');
 const Contact = require('../models/Contact');
+const CONTACT_INFO = require('../constants/contactConstants');
 
 const sendContactMessage = async (req, res) => {
   try {
@@ -62,8 +63,7 @@ const sendContactMessage = async (req, res) => {
           <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 20px 0;">
           <p style="color: #666; font-size: 12px;">
             <strong>DigiLibrary Team</strong><br>
-            DigiLibrary Street, No: 23, Kadiköy, Istanbul<br>
-            info@digilibrary.com | +90 (216) 555 12 34
+            ${CONTACT_INFO.EMAIL} | ${CONTACT_INFO.PHONE}
           </p>
         </div>
       `;
@@ -74,7 +74,7 @@ const sendContactMessage = async (req, res) => {
       // Email service failure should not prevent message from being saved to database
       await logErrorDetails('Contact Email Sending Failed', emailError, req, {
         recipientEmail: email,
-        adminEmail: 'info@dijitalkutuphane.com'
+        adminEmail: CONTACT_INFO.EMAIL
       });
     }
 
@@ -252,8 +252,7 @@ const replyToMessage = async (req, res) => {
           <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 20px 0;">
           <p style="color: #666; font-size: 12px;">
             <strong>DigiLibrary Team</strong><br>
-            DigiLibrary Street, No: 23, Kadiköy, Istanbul<br>
-            info@digilibrary.com | +90 (216) 555 12 34
+            ${CONTACT_INFO.EMAIL} | ${CONTACT_INFO.PHONE}
           </p>
         </div>
       `;
@@ -322,8 +321,7 @@ const sendNewMessageToUser = async (req, res) => {
           <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 20px 0;">
           <p style="color: #666; font-size: 12px;">
             <strong>DigiLibrary Team</strong><br>
-            DigiLibrary Street, No: 23, Kadiköy, Istanbul<br>
-            info@digilibrary.com | +90 (216) 555 12 34
+            ${CONTACT_INFO.EMAIL} | ${CONTACT_INFO.PHONE}
           </p>
         </div>
       `;

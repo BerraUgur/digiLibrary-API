@@ -71,13 +71,18 @@ app.use(helmet({
   frameguard: false // Allow iframe embedding for Iyzico
 }));
 
-// Rate limiting: 100 requests per 15 minutes per IP
+// Rate limiting: 300 requests per 10 minutes per IP
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Max 100 requests per window
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 300, // Max 300 requests per window
   standardHeaders: true, // Return rate limit info in headers
   legacyHeaders: false, // Disable X-RateLimit-* headers
-  message: { error: 'Too many requests, please try again later' }
+  message: { error: 'Too many requests, please try again later' },
+  // Skip rate limiting for authenticated users with valid tokens
+  skip: (req) => {
+    // Skip rate limiting if user is authenticated
+    return req.user && req.user.id;
+  }
 });
 app.use('/api/', limiter);
 

@@ -127,6 +127,11 @@ const updateUser = async (req, res) => {
       delete updates.password;
     }
 
+    // Handle permanent ban
+    if (updates.isPermanentBan) {
+      updates.banUntil = null; // Clear any temporary ban date
+    }
+
     const user = await User.findByIdAndUpdate(id, updates, {
       new: true,
       runValidators: true,

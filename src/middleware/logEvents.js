@@ -8,7 +8,7 @@ const path = require("path");
 const logEvents = async (message, logFileName) => {
   const dateTime = format(new Date(), "yyyy-MM-dd HH:mm:ss");
   const logId = uuid();
-  
+
   // Create detailed, multi-line log entry
   const logItem = `
 ${'='.repeat(80)}
@@ -38,7 +38,7 @@ const logErrorDetails = async (operation, error, req, additionalContext = {}) =>
   const contextLines = Object.entries(additionalContext)
     .map(([key, value]) => `[${key.toUpperCase()}] ${value}`)
     .join('\n');
-  
+
   const message = `[OPERATION] ${operation}
 [ERROR TYPE] ${error.name}
 [ERROR MESSAGE] ${error.message}
@@ -47,7 +47,7 @@ const logErrorDetails = async (operation, error, req, additionalContext = {}) =>
 [USER ID] ${req?.user?.id || 'unauthenticated'}
 ${contextLines ? contextLines + '\n' : ''}[STACK TRACE]
 ${error.stack}`;
-  
+
   await logEvents(message, 'errLog.log');
 };
 

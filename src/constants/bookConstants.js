@@ -6,4 +6,29 @@ module.exports = {
   MIN_POPULAR_DAYS: 1,                       // Minimum days to look back
   MAX_POPULAR_DAYS: 365,                     // Maximum days to look back (1 year)
   MS_PER_DAY: 24 * 60 * 60 * 1000,          // Milliseconds in one day
+  
+  // Book categories - English keys for database storage
+  BOOK_CATEGORIES: [
+    'Novel',
+    'Science',
+    'History',
+    'Philosophy',
+    'Literature',
+    'Biography',
+    'Children',
+    'Poetry',
+    'Fantasy',
+    'Mystery',
+    'Horror',
+    'Travel',
+    'Psychology',
+    'Art',
+    'Young Adult',
+    'Technology',
+    'Religion',
+    'Self-Development',
+    'Business & Economics',
+    'Classic',
+    'Other'
+  ]
 };

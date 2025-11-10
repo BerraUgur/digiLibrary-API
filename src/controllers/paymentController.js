@@ -43,7 +43,6 @@ const createCheckoutSession = async (req, res) => {
       mode: 'payment',
       success_url: `${req.protocol}://${req.get('host')}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.protocol}://${req.get('host')}/books?canceled=true`,
-      locale: 'en',
       metadata: {
         bookId: book._id.toString(),
         userId: user._id.toString(),
@@ -129,7 +128,6 @@ const createLateFeeCheckoutSession = async (req, res) => {
       mode: 'payment',
       success_url: `${frontendUrl}/late-fees?payment=success`,
       cancel_url: `${frontendUrl}/late-fees?payment=canceled`,
-      locale: 'en',
       phone_number_collection: {
         enabled: false,
       },
@@ -156,7 +154,7 @@ const createLateFeeCheckoutSession = async (req, res) => {
 
 const confirmLateFeePayment = async (req, res) => {
   try {
-    const { loanId } = req.body;
+    const { loanId, sessionId } = req.body;
     const Loan = require('../models/Loan');
 
     const loan = await Loan.findById(loanId);
@@ -165,10 +163,11 @@ const confirmLateFeePayment = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Loan record not found' });
     }
 
-    loan.lateFee = 0;
+    // Keep lateFee and daysLate for record keeping - DO NOT RESET TO 0
     loan.lateFeePaid = true;
     loan.lateFeePaymentDate = new Date();
-    loan.daysLate = 0;
+    loan.stripePaymentId = sessionId || 'stripe-payment';
+    loan.paymentMethod = 'stripe';
 
     await loan.save();
 
@@ -222,7 +221,7 @@ const createIyzicoCheckoutSession = async (req, res) => {
         id: user._id.toString(),
         name: user.name || 'User',
         surname: user.surname || 'User',
-        gsmNumber: user.phone || '+905555555555',
+        gsmNumber: user.phone || '+905555555',
         email: user.email,
         identityNumber: '11111111111',
         registrationAddress: 'Address',
@@ -552,10 +551,11 @@ const handleIyzicoCallback = async (req, res) => {
         const loan = await Loan.findById(loanId);
 
         if (loan) {
-          loan.lateFee = 0;
+          // Keep lateFee and daysLate for record keeping - DO NOT RESET TO 0
           loan.lateFeePaid = true;
           loan.lateFeePaymentDate = new Date();
-          loan.daysLate = 0;
+          loan.iyzicoPaymentId = result.paymentId;
+          loan.paymentMethod = 'iyzico';
           await loan.save();
         }
 
@@ -572,13 +572,20 @@ const handleIyzicoCallback = async (req, res) => {
           </html>
         `);
       } else {
+        // Payment failed or cancelled
+        const frontendUrl = process.env.FRONTEND_URL;
+        const isUserCancelled = result.errorMessage && result.errorMessage.toLowerCase().includes('cancel');
+        const redirectUrl = isUserCancelled 
+          ? `${frontendUrl}/late-fees?payment=canceled`
+          : `${frontendUrl}/late-fees?payment=failed`;
+        
         // HTML response with JavaScript redirect
         return res.send(`
           <!DOCTYPE html>
           <html>
           <head>
             <script>
-              window.location.href = '${process.env.FRONTEND_URL}/late-fees?payment=failed';
+              window.top.location.href = '${redirectUrl}';
             </script>
           </head>
           <body>Redirecting...</body>

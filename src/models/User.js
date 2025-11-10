@@ -6,7 +6,12 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, lowercase: true, trim: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
-  banUntil: { type: Date, default: null }, // Ban expiration date for late returns
+  tcIdentity: { type: String, required: true, unique: true, length: 11 },
+  phoneNumber: { type: String },
+  address: { type: String },
+  birthDate: { type: Date },
+  banUntil: { type: Date, default: null }, // Ban expiration date, null = no ban, 'permanent' handled separately
+  isPermanentBan: { type: Boolean, default: false }, // Permanent ban flag
 }, { timestamps: true });
 
 // Pre-save hook: hash password before storing (security)

@@ -30,7 +30,7 @@ const isValidHttpUrl = (value) => {
   }
 };
 
-// Normalize multipart form fields (convert arrays to scalars)
+// Normalize multipart form fields but preserve arrays for author and category
 const normalizeMultipartFields = (req, _res, next) => {
   if (!req.body) {
     req.body = {};
@@ -38,7 +38,16 @@ const normalizeMultipartFields = (req, _res, next) => {
   }
 
   Object.keys(req.body).forEach((key) => {
-    req.body[key] = toScalar(req.body[key]);
+    // Keep author and category as arrays (multer correctly parses multiple values)
+    if (key === 'author' || key === 'category') {
+      // If it's already an array, keep it; if single value, convert to array
+      if (!Array.isArray(req.body[key])) {
+        req.body[key] = [req.body[key]];
+      }
+    } else {
+      // Convert other fields to scalar
+      req.body[key] = toScalar(req.body[key]);
+    }
   });
   next();
 };
@@ -46,28 +55,71 @@ const normalizeMultipartFields = (req, _res, next) => {
 // Validate required fields for book creation
 const validateCreateBook = (req, res, next) => {
   const errors = [];
-  const requiredFields = ['title', 'author', 'category'];
 
-  // Validate required fields
-  requiredFields.forEach((field) => {
-    const value = cleanString(req.body[field]);
-    if (!value) {
-      const fieldName = field.charAt(0).toUpperCase() + field.slice(1);
-      errors.push({ field, message: `${fieldName} is required` });
-    }
-    req.body[field] = value;
-  });
+  // Validate Turkish title (required)
+  const title_tr = cleanString(req.body.title_tr);
+  if (!title_tr) {
+    errors.push({ field: 'title_tr', message: 'Turkish title is required' });
+  }
+  req.body.title_tr = title_tr;
 
-  // Validate optional imageUrl
+  // Validate English title (required)
+  const title_en = cleanString(req.body.title_en);
+  if (!title_en) {
+    errors.push({ field: 'title_en', message: 'English title is required' });
+  }
+  req.body.title_en = title_en;
+
+  // Validate Turkish description (required)
+  const description_tr = cleanString(req.body.description_tr);
+  if (!description_tr) {
+    errors.push({ field: 'description_tr', message: 'Turkish description is required' });
+  }
+  req.body.description_tr = description_tr;
+
+  // Validate English description (required)
+  const description_en = cleanString(req.body.description_en);
+  if (!description_en) {
+    errors.push({ field: 'description_en', message: 'English description is required' });
+  }
+  req.body.description_en = description_en;
+
+  // Validate author(s) - expect array
+  let authors = req.body.author;
+  if (!Array.isArray(authors)) {
+    authors = authors ? [authors] : [];
+  }
+  authors = authors.map(a => cleanString(a)).filter(a => a);
+  if (authors.length === 0) {
+    errors.push({ field: 'author', message: 'At least one author is required' });
+  }
+  req.body.author = authors;
+
+  // Validate category(ies) - expect array
+  let categories = req.body.category;
+  if (!Array.isArray(categories)) {
+    categories = categories ? [categories] : [];
+  }
+  categories = categories.map(c => cleanString(c)).filter(c => c);
+  if (categories.length === 0) {
+    errors.push({ field: 'category', message: 'At least one category is required' });
+  }
+  req.body.category = categories;
+
+  // Validate image (required) - either file or imageUrl
   const imageUrl = cleanString(req.body.imageUrl);
-  if (imageUrl) {
+  const hasFile = req.file && req.file.buffer;
+  
+  if (!hasFile && !imageUrl) {
+    errors.push({ field: 'image', message: 'Book image is required (either upload a file or provide an image URL)' });
+  } else if (imageUrl && !hasFile) {
     if (!isValidHttpUrl(imageUrl)) {
       errors.push({ field: 'imageUrl', message: 'Image URL must be a valid URL' });
     } else {
       req.body.imageUrl = imageUrl;
     }
   } else {
-    req.body.imageUrl = '';
+    req.body.imageUrl = imageUrl || '';
   }
 
   if (errors.length) {
@@ -86,18 +138,73 @@ const validateUpdateBook = (req, res, next) => {
   const errors = [];
   const updates = {};
 
-  // Validate optional text fields
-  ['title', 'author', 'category'].forEach((field) => {
-    if (Object.prototype.hasOwnProperty.call(req.body, field)) {
-      const value = cleanString(req.body[field]);
-      if (!value) {
-        const fieldName = field.charAt(0).toUpperCase() + field.slice(1);
-        errors.push({ field, message: `${fieldName} cannot be empty if provided` });
-      } else {
-        updates[field] = value;
-      }
+  // Validate Turkish title
+  if (Object.prototype.hasOwnProperty.call(req.body, 'title_tr')) {
+    const title_tr = cleanString(req.body.title_tr);
+    if (!title_tr) {
+      errors.push({ field: 'title_tr', message: 'Turkish title cannot be empty if provided' });
+    } else {
+      updates.title_tr = title_tr;
     }
-  });
+  }
+
+  // Validate English title
+  if (Object.prototype.hasOwnProperty.call(req.body, 'title_en')) {
+    const title_en = cleanString(req.body.title_en);
+    if (!title_en) {
+      errors.push({ field: 'title_en', message: 'English title cannot be empty if provided' });
+    } else {
+      updates.title_en = title_en;
+    }
+  }
+
+  // Validate Turkish description
+  if (Object.prototype.hasOwnProperty.call(req.body, 'description_tr')) {
+    const description_tr = cleanString(req.body.description_tr);
+    if (!description_tr) {
+      errors.push({ field: 'description_tr', message: 'Turkish description cannot be empty if provided' });
+    } else {
+      updates.description_tr = description_tr;
+    }
+  }
+
+  // Validate English description
+  if (Object.prototype.hasOwnProperty.call(req.body, 'description_en')) {
+    const description_en = cleanString(req.body.description_en);
+    if (!description_en) {
+      errors.push({ field: 'description_en', message: 'English description cannot be empty if provided' });
+    } else {
+      updates.description_en = description_en;
+    }
+  }
+
+  // Validate author(s) - expect array
+  if (Object.prototype.hasOwnProperty.call(req.body, 'author')) {
+    let authors = req.body.author;
+    if (!Array.isArray(authors)) {
+      authors = authors ? [authors] : [];
+    }
+    authors = authors.map(a => cleanString(a)).filter(a => a);
+    if (authors.length === 0) {
+      errors.push({ field: 'author', message: 'At least one author is required' });
+    } else {
+      updates.author = authors;
+    }
+  }
+
+  // Validate category(ies) - expect array
+  if (Object.prototype.hasOwnProperty.call(req.body, 'category')) {
+    let categories = req.body.category;
+    if (!Array.isArray(categories)) {
+      categories = categories ? [categories] : [];
+    }
+    categories = categories.map(c => cleanString(c)).filter(c => c);
+    if (categories.length === 0) {
+      errors.push({ field: 'category', message: 'At least one category is required' });
+    } else {
+      updates.category = categories;
+    }
+  }
 
   // Validate optional imageUrl
   if (Object.prototype.hasOwnProperty.call(req.body, 'imageUrl')) {

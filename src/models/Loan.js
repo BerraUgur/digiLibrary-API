@@ -14,8 +14,10 @@ const loanSchema = new mongoose.Schema({
   lateFeePaymentDate: { type: Date },
   // Email reminder tracking
   reminderSent: { type: Boolean, default: false },
-  // Stripe payment integration
+  // Payment integration
   stripePaymentId: { type: String },
+  iyzicoPaymentId: { type: String },
+  paymentMethod: { type: String, enum: ['stripe', 'iyzico', null], default: null }, // Payment method used
 }, { timestamps: true });
 
 // Indexes for efficient queries

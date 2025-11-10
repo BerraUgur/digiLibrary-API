@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const crypto = require('crypto');
 const sanitize = require('mongo-sanitize');
+const { validateTCIdentity } = require('../utils/tcValidation');
 const { logErrorDetails } = require('../middleware/logEvents');
 const { accessToken, refreshToken, passwordReset } = require("../config/jwtConfig");
 const RefreshToken = require("../models/RefreshToken");
@@ -25,18 +26,43 @@ const registerUser = async (req, res) => {
   let sanitizedBody;
   try {
     sanitizedBody = sanitize(req.body);
-    const { username, email, password, role = ROLES.USER } = sanitizedBody;
+    const { username, email, password, role, tcIdentity, phoneNumber, address, birthDate } = sanitizedBody;
 
-    if (!username || !email || !password) {
-      return res.status(400).json({ message: "All fields must be filled." });
+    // Check required fields
+    if (!username || !email || !password || !tcIdentity || !phoneNumber || !address || !birthDate) {
+      return res.status(400).json({ message: "All required fields must be filled." });
     }
 
-    const existingUser = await User.findOne({ email });
+    // TC Kimlik doğrulaması
+    if (!validateTCIdentity(tcIdentity)) {
+      return res.status(400).json({ message: "Invalid TC Identity Number." });
+    }
+
+    // Phone number format validation
+    if (!phoneNumber.match(/^\+90 \d{3} \d{3} \d{2} \d{2}$/)) {
+      return res.status(400).json({ message: "Invalid phone number format." });
+    }
+
+    const existingUser = await User.findOne({ $or: [{ email }, { tcIdentity }] });
     if (existingUser) {
-      return res.status(400).json({ message: "This email address is already registered." });
+      if (existingUser.email === email) {
+        return res.status(400).json({ message: "This email address is already registered." });
+      }
+      if (existingUser.tcIdentity === tcIdentity) {
+        return res.status(400).json({ message: "This TC Identity Number is already registered." });
+      }
     }
 
-    const user = new User({ username, email, password, role });
+    const user = new User({ 
+      username, 
+      email, 
+      password, 
+      role, 
+      tcIdentity,
+      phoneNumber,
+      address,
+      birthDate: birthDate ? new Date(birthDate) : undefined
+    });
     await user.save();
 
     const { password: _, ...userResponse } = user.toObject();

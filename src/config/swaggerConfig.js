@@ -1,5 +1,6 @@
 const swaggerJsdoc = require("swagger-jsdoc");
 const path = require('path');
+const { EMAIL } = require("../constants/contactConstants");
 
 const options = {
   definition: {
@@ -10,7 +11,7 @@ const options = {
       description: "Comprehensive API for managing DigiLibrary operations including books, loans, users, and payments",
       contact: {
         name: "DigiLibrary Development Team",
-        email: "dev@digilibrary.com"
+        email: EMAIL
       }
     },
     servers: [
