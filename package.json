@@ -17,6 +17,10 @@
   ],
   "author": "Berra Ugur",
   "license": "MIT",
+  "engines": {
+   "node": ">=22.11.0",
+   "npm": ">=10.9.0"
+  },
   "dependencies": {
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
