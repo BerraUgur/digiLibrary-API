@@ -18,8 +18,8 @@
   "author": "Berra Ugur",
   "license": "MIT",
   "engines": {
-   "node": ">=22.11.0",
-   "npm": ">=10.9.0"
+   "node": ">=22.11.x",
+   "npm": ">=10.9.x"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
