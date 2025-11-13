@@ -3,6 +3,22 @@ const { logErrorDetails } = require('./logEvents');
 const { accessToken, refreshToken } = require("../config/jwtConfig");
 const RefreshToken = require("../models/RefreshToken");
 
+// Verify JWT access token from cookies or Authorization header (optional for logout)
+const verifyAccessTokenOptional = (req, res, next) => {
+  const token = req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, accessToken.secret);
+      req.user = decoded;
+    } catch (error) {
+      // Token invalid but allow to continue for logout
+      req.user = null;
+    }
+  }
+  next();
+};
+
 // Verify JWT access token from cookies or Authorization header
 const verifyAccessToken = (req, res, next) => {
   const token = req.cookies.accessToken || req.headers.authorization?.split(" ")[1];
@@ -71,4 +87,4 @@ const authorizeRoles = (...roles) => {
   };
 };
 
-module.exports = { verifyAccessToken, verifyRefreshToken, authorizeRoles };
+module.exports = { verifyAccessToken, verifyAccessTokenOptional, verifyRefreshToken, authorizeRoles };

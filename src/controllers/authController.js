@@ -123,7 +123,7 @@ const loginUser = async (req, res) => {
 
     const { password: _, ...userResponse } = user.toObject();
     
-    // Add user info to res.locals for logging
+    // Add user info to res.locals for logging BEFORE response
     res.locals.logUser = {
       userId: user._id.toString(),
       email: user.email,
@@ -131,7 +131,7 @@ const loginUser = async (req, res) => {
       isAuthenticated: true,
     };
     
-    res.status(200).json({ message: "Login successful!", user: userResponse });
+    return res.status(200).json({ message: "Login successful!", user: userResponse });
   } catch (error) {
     await logErrorDetails('User Login Failed', error, req, {
       email: sanitizedBody?.email || 'N/A'
@@ -198,20 +198,14 @@ const refreshTokens = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
-    // Extract user info from token before clearing cookies
-    const token = req.cookies.accessToken;
-    if (token) {
-      try {
-        const decoded = jwt.verify(token, accessToken.secret);
-        res.locals.logUser = {
-          userId: decoded.id,
-          email: decoded.email,
-          role: decoded.role,
-          isAuthenticated: true,
-        };
-      } catch (err) {
-        // Token invalid but still allow logout
-      }
+    // Extract user info from middleware (verifyAccessTokenOptional sets req.user)
+    if (req.user) {
+      res.locals.logUser = {
+        userId: req.user.id,
+        email: req.user.email,
+        role: req.user.role,
+        isAuthenticated: true,
+      };
     }
     
     const { refreshToken } = req.cookies;
@@ -222,7 +216,7 @@ const logout = async (req, res) => {
     res.clearCookie("accessToken");
     res.clearCookie("refreshToken", { path: "/api/auth/refresh-token" });
 
-    res.status(200).json({ message: "Successfully logged out." });
+    return res.status(200).json({ message: "Successfully logged out." });
   } catch (error) {
     await logErrorDetails('User Logout Failed', error, req, {
       'cookies present': !!req.cookies.refreshToken
