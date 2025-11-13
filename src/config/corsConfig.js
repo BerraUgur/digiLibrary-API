@@ -9,6 +9,7 @@ const corsOptions = {
       "http://127.0.0.1",
       "http://127.0.0.1:5173",
       "http://127.0.0.1:3000",
+      "https://digilibrary-ui.vercel.app"
     ];
 
     // Allow requests with no origin (like mobile apps, Postman, or server-to-server)
