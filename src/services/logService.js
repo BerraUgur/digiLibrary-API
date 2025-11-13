@@ -31,12 +31,15 @@ const parseUserAgent = (userAgent) => {
 
 // Get client IP address
 const getClientIp = (req) => {
+  if (!req || !req.headers) return 'Unknown';
+  
   return (
     req.headers['x-forwarded-for']?.split(',')[0].trim() ||
     req.headers['x-real-ip'] ||
     req.connection?.remoteAddress ||
     req.socket?.remoteAddress ||
     req.connection?.socket?.remoteAddress ||
+    req.ip ||
     'Unknown'
   );
 };
@@ -80,7 +83,7 @@ const createLog = async ({
     // Add request details if available
     if (req) {
       const ip = getClientIp(req);
-      const userAgent = req.headers['user-agent'] || '';
+      const userAgent = req.headers?.['user-agent'] || '';
       const { browser, os, device } = parseUserAgent(userAgent);
 
       logData.request = {
@@ -92,9 +95,9 @@ const createLog = async ({
         body: sanitizeBody(req.body),
         headers: {
           userAgent: userAgent,
-          origin: req.headers.origin,
-          referer: req.headers.referer,
-          contentType: req.headers['content-type'],
+          origin: req.headers?.origin,
+          referer: req.headers?.referer,
+          contentType: req.headers?.['content-type'],
         },
       };
 
@@ -134,7 +137,7 @@ const createLog = async ({
       logData.response = {
         statusCode: res.statusCode,
         statusMessage: res.statusMessage,
-        contentLength: res.get('content-length'),
+        contentLength: res.get ? res.get('content-length') : null,
         responseTime: res.responseTime, // Will be set by middleware
       };
     }

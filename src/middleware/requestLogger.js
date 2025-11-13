@@ -68,11 +68,13 @@ const requestLogger = (req, res, next) => {
     const message = `${req.method} ${req.originalUrl} - ${res.statusCode} - ${responseTime}ms`;
 
     try {
-      // Create a modified req object with user info
-      const logReq = { ...req, user: userInfo || req.user };
+      // Pass original req with user info added
+      if (userInfo) {
+        req.user = userInfo;
+      }
       
       await logger[level](message, {
-        req: logReq,
+        req,
         res,
         operation,
         user: userInfo,
