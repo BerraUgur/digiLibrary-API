@@ -23,6 +23,9 @@ const logRoutes = require("./routes/logRoutes");
 
 const app = express();
 
+// Trust proxy - Required for Render.com and other reverse proxies
+app.set('trust proxy', 1);
+
 // ============ DOCUMENTATION ============
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 

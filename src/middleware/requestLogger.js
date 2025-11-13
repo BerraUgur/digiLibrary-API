@@ -12,11 +12,18 @@ const requestLogger = (req, res, next) => {
     '/favicon.ico',
     '/api-docs',
     '/uploads',
-    '/static'
+    '/static',
+    '/api/books/image',
+    '/api/books/popular'
   ];
   
   const shouldSkip = skipPaths.some(path => req.path.startsWith(path));
   if (shouldSkip) {
+    return next();
+  }
+
+  // Skip GET requests with stats query (analytics requests)
+  if (req.method === 'GET' && req.query.stats) {
     return next();
   }
 
@@ -27,7 +34,7 @@ const requestLogger = (req, res, next) => {
     if (token) {
       const decoded = jwt.verify(token, accessToken.secret);
       userInfo = {
-        userId: decoded._id || decoded.id,
+        userId: decoded.id || decoded._id,
         email: decoded.email,
         role: decoded.role,
         isAuthenticated: true,
@@ -55,7 +62,7 @@ const requestLogger = (req, res, next) => {
 
     // Determine operation based on URL path
     let operation = 'other';
-    const urlPath = req.path.toLowerCase();
+    const urlPath = req.originalUrl.toLowerCase();
     if (urlPath.includes('/auth')) operation = 'auth';
     else if (urlPath.includes('/book')) operation = 'book';
     else if (urlPath.includes('/loan')) operation = 'loan';
