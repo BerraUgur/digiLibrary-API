@@ -60,8 +60,11 @@ const requestLogger = (req, res, next) => {
   
   // First check if auth middleware already set req.user
   if (req.user) {
+    const existingId = req.user.id || req.user._id || req.user.userId;
     userInfo = {
-      userId: req.user.id || req.user._id || req.user.userId,
+      userId: existingId,
+      id: existingId,
+      _id: existingId,
       email: req.user.email,
       role: req.user.role,
       isAuthenticated: true,
@@ -72,8 +75,11 @@ const requestLogger = (req, res, next) => {
       const token = req.cookies.accessToken || req.headers.authorization?.split(' ')[1];
       if (token) {
         const decoded = jwt.verify(token, accessToken.secret);
+        const decodedId = decoded.id || decoded._id;
         userInfo = {
-          userId: decoded.id || decoded._id,
+          userId: decodedId,
+          id: decodedId,
+          _id: decodedId,
           email: decoded.email,
           role: decoded.role,
           isAuthenticated: true,
@@ -120,7 +126,13 @@ const requestLogger = (req, res, next) => {
       
       // Pass original req with user info added
       if (finalUserInfo) {
-        req.user = finalUserInfo;
+        const normalizedId = finalUserInfo.userId || finalUserInfo.id || finalUserInfo._id;
+        req.user = {
+          ...finalUserInfo,
+          userId: normalizedId,
+          id: normalizedId,
+          _id: normalizedId,
+        };
       }
       
       await logger[level](message, {

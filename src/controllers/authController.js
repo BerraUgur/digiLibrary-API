@@ -68,6 +68,8 @@ const registerUser = async (req, res) => {
     // Add user info to res.locals for logging
     res.locals.logUser = {
       userId: user._id.toString(),
+      id: user._id.toString(),
+      _id: user._id,
       email: user.email,
       role: user.role,
       isAuthenticated: true,
@@ -126,6 +128,8 @@ const loginUser = async (req, res) => {
     // Add user info to res.locals for logging BEFORE response
     res.locals.logUser = {
       userId: user._id.toString(),
+      id: user._id.toString(),
+      _id: user._id,
       email: user.email,
       role: user.role,
       isAuthenticated: true,
@@ -181,7 +185,9 @@ const refreshTokens = async (req, res) => {
 
     // Add user info to res.locals for logging
     res.locals.logUser = {
-      userId: req.user.id || req.user._id,
+      userId: (req.user.id || req.user._id)?.toString(),
+      id: (req.user.id || req.user._id)?.toString(),
+      _id: req.user._id || req.user.id,
       email: req.user.email,
       role: req.user.role,
       isAuthenticated: true,
@@ -198,14 +204,85 @@ const refreshTokens = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
-    // Extract user info from middleware (verifyAccessTokenOptional sets req.user)
-    if (req.user) {
+    const attachLogUser = async ({ userId, email, role }) => {
+      if (!userId || res.locals.logUser) return;
+      const normalizedId = userId.toString();
       res.locals.logUser = {
-        userId: req.user.id,
-        email: req.user.email,
-        role: req.user.role,
+        userId: normalizedId,
+        id: normalizedId,
+        _id: userId,
+        email,
+        role,
         isAuthenticated: true,
       };
+    };
+
+    // 1) Try user info from middleware (preferred)
+    if (req.user) {
+      await attachLogUser({
+        userId: req.user.id || req.user._id || req.user.userId,
+        email: req.user.email,
+        role: req.user.role,
+      });
+    }
+
+    // 2) Try decoding access token cookie directly
+    if (!res.locals.logUser && req.cookies?.accessToken) {
+      try {
+        const decodedAccess = jwt.verify(req.cookies.accessToken, accessToken.secret);
+        await attachLogUser({
+          userId: decodedAccess.id || decodedAccess._id,
+          email: decodedAccess.email,
+          role: decodedAccess.role,
+        });
+      } catch (err) {
+        // Ignore invalid/expired access token
+      }
+    }
+
+    // 3) Fall back to refresh token cookie (fetch user details for email/role)
+    if (!res.locals.logUser && req.cookies?.refreshToken) {
+      try {
+        const decodedRefresh = jwt.verify(req.cookies.refreshToken, refreshToken.secret);
+        const userRecord = await User.findById(decodedRefresh.id).select('email role');
+        await attachLogUser({
+          userId: decodedRefresh.id,
+          email: userRecord?.email,
+          role: userRecord?.role,
+        });
+      } catch (err) {
+        // Ignore invalid refresh token, still allow logout
+      }
+    }
+
+    // 4) Last resort: use payload provided by client (if available)
+    if (!res.locals.logUser && (req.body?.userId || req.body?.email)) {
+      let providedUserId = req.body.userId;
+      let providedEmail = req.body.email;
+      let providedRole = req.body.role;
+
+      if (!providedEmail || !providedRole) {
+        const lookupFilters = [];
+        if (providedUserId) lookupFilters.push({ _id: providedUserId });
+        if (providedEmail) lookupFilters.push({ email: providedEmail });
+
+        if (lookupFilters.length) {
+          const userRecord = await User.findOne({ $or: lookupFilters }).select('email role');
+          providedEmail = providedEmail || userRecord?.email;
+          providedRole = providedRole || userRecord?.role;
+          if (!providedUserId && userRecord?._id) {
+            providedUserId = userRecord._id;
+          }
+        }
+      }
+
+      if (providedUserId) {
+        await attachLogUser({
+          userId: providedUserId,
+          email: providedEmail,
+          role: providedRole,
+        });
+      }
     }
     
     const { refreshToken } = req.cookies;

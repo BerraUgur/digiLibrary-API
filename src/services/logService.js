@@ -112,15 +112,17 @@ const createLog = async ({
 
       // Add user info if authenticated
       if (req.user) {
+        const resolvedUserId = req.user.userId || req.user._id || req.user.id;
         logData.user = {
-          userId: req.user._id || req.user.id,
+          userId: resolvedUserId,
           email: req.user.email,
           role: req.user.role,
           isAuthenticated: true,
         };
       } else if (user) {
+        const resolvedUserId = user.userId || user._id || user.id;
         logData.user = {
-          userId: user._id || user.id,
+          userId: resolvedUserId,
           email: user.email,
           role: user.role,
           isAuthenticated: true,
