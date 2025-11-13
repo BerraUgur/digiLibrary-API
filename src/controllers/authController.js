@@ -67,7 +67,7 @@ const registerUser = async (req, res) => {
 
     // Add user info to res.locals for logging
     res.locals.logUser = {
-      userId: user._id,
+      userId: user._id.toString(),
       email: user.email,
       role: user.role,
       isAuthenticated: true,
@@ -125,7 +125,7 @@ const loginUser = async (req, res) => {
     
     // Add user info to res.locals for logging
     res.locals.logUser = {
-      userId: user._id,
+      userId: user._id.toString(),
       email: user.email,
       role: user.role,
       isAuthenticated: true,
@@ -198,14 +198,20 @@ const refreshTokens = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
-    // Extract user info before clearing cookies
-    if (req.user) {
-      res.locals.logUser = {
-        userId: req.user.id || req.user._id,
-        email: req.user.email,
-        role: req.user.role,
-        isAuthenticated: true,
-      };
+    // Extract user info from token before clearing cookies
+    const token = req.cookies.accessToken;
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, accessToken.secret);
+        res.locals.logUser = {
+          userId: decoded.id,
+          email: decoded.email,
+          role: decoded.role,
+          isAuthenticated: true,
+        };
+      } catch (err) {
+        // Token invalid but still allow logout
+      }
     }
     
     const { refreshToken } = req.cookies;

@@ -55,21 +55,33 @@ const requestLogger = (req, res, next) => {
     }
   }
 
-  // Extract user info from token before logout clears it
+  // Extract user info from middleware or token
   let userInfo = null;
-  try {
-    const token = req.cookies.accessToken || req.headers.authorization?.split(' ')[1];
-    if (token) {
-      const decoded = jwt.verify(token, accessToken.secret);
-      userInfo = {
-        userId: decoded.id || decoded._id,
-        email: decoded.email,
-        role: decoded.role,
-        isAuthenticated: true,
-      };
+  
+  // First check if auth middleware already set req.user
+  if (req.user) {
+    userInfo = {
+      userId: req.user.id || req.user._id || req.user.userId,
+      email: req.user.email,
+      role: req.user.role,
+      isAuthenticated: true,
+    };
+  } else {
+    // Fall back to extracting from token
+    try {
+      const token = req.cookies.accessToken || req.headers.authorization?.split(' ')[1];
+      if (token) {
+        const decoded = jwt.verify(token, accessToken.secret);
+        userInfo = {
+          userId: decoded.id || decoded._id,
+          email: decoded.email,
+          role: decoded.role,
+          isAuthenticated: true,
+        };
+      }
+    } catch (err) {
+      // Token invalid or expired, no user info
     }
-  } catch (err) {
-    // Token invalid or expired, no user info
   }
 
   // Function to log the request (with guard to prevent double logging)
