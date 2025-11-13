@@ -9,7 +9,7 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 /**
  * Initialize and start the server
  * Handles database connection, cron jobs, and HTTP server startup
- */
+*/
 const startServer = async () => {
   try {
     // Connect to MongoDB
