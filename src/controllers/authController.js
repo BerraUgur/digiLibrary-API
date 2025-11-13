@@ -204,90 +204,116 @@ const refreshTokens = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
-    const attachLogUser = async ({ userId, email, role }) => {
-      if (!userId || res.locals.logUser) return;
-      const normalizedId = userId.toString();
-      res.locals.logUser = {
+    const mergeLogUser = ({ userId, email, role } = {}) => {
+      const existing = res.locals.logUser || {};
+      const normalizedSourceId = userId || existing.userId || existing.id || existing._id || req.user?.id || req.user?._id || req.user?.userId;
+
+      if (!normalizedSourceId) return;
+
+      const rawId = typeof normalizedSourceId === 'object' && normalizedSourceId._id
+        ? normalizedSourceId._id
+        : normalizedSourceId;
+      const normalizedId = typeof rawId === 'object' && rawId.toString ? rawId.toString() : rawId;
+
+      if (!normalizedId) return;
+
+      const payload = {
         userId: normalizedId,
         id: normalizedId,
-        _id: userId,
-        email,
-        role,
+        _id: rawId,
+        email: email || existing.email || req.user?.email || null,
+        role: role || existing.role || req.user?.role || null,
         isAuthenticated: true,
       };
+
+      res.locals.logUser = payload;
+      req.user = { ...(req.user || {}), ...payload };
     };
 
-    // 1) Try user info from middleware (preferred)
-    if (req.user) {
-      await attachLogUser({
-        userId: req.user.id || req.user._id || req.user.userId,
-        email: req.user.email,
-        role: req.user.role,
-      });
-    }
-
-    // 2) Try decoding access token cookie directly
-    if (!res.locals.logUser && req.cookies?.accessToken) {
+    const tryAttachFromAccessToken = (token) => {
+      if (!token || res.locals.logUser) return;
       try {
-        const decodedAccess = jwt.verify(req.cookies.accessToken, accessToken.secret);
-        await attachLogUser({
-          userId: decodedAccess.id || decodedAccess._id,
-          email: decodedAccess.email,
-          role: decodedAccess.role,
+        const decoded = jwt.verify(token, accessToken.secret);
+        mergeLogUser({
+          userId: decoded.id || decoded._id,
+          email: decoded.email,
+          role: decoded.role,
         });
       } catch (err) {
         // Ignore invalid/expired access token
       }
-    }
+    };
 
-    // 3) Fall back to refresh token cookie (fetch user details for email/role)
-    if (!res.locals.logUser && req.cookies?.refreshToken) {
+    const tryAttachFromRefreshToken = async (token) => {
+      if (!token || res.locals.logUser) return null;
       try {
-        const decodedRefresh = jwt.verify(req.cookies.refreshToken, refreshToken.secret);
-        const userRecord = await User.findById(decodedRefresh.id).select('email role');
-        await attachLogUser({
-          userId: decodedRefresh.id,
-          email: userRecord?.email,
-          role: userRecord?.role,
-        });
+        const storedToken = await RefreshToken.findOne({ token }).populate('userId', 'email role');
+        if (storedToken?.userId) {
+          mergeLogUser({
+            userId: storedToken.userId._id || storedToken.userId,
+            email: storedToken.userId.email,
+            role: storedToken.userId.role,
+          });
+          return storedToken;
+        }
+
+        const decoded = jwt.verify(token, refreshToken.secret);
+        if (decoded?.id) {
+          const userRecord = await User.findById(decoded.id).select('email role');
+          mergeLogUser({
+            userId: decoded.id,
+            email: userRecord?.email,
+            role: userRecord?.role,
+          });
+        }
       } catch (err) {
-        // Ignore invalid refresh token, still allow logout
+        // Ignore invalid refresh token
       }
+      return null;
+    };
+
+    // 1) Info from middleware (verifyAccessTokenOptional attaches decoded token)
+    mergeLogUser({
+      userId: req.user?.id || req.user?._id || req.user?.userId,
+      email: req.user?.email,
+      role: req.user?.role,
+    });
+
+    // 2) Decode access token from cookie/header as fallback
+    tryAttachFromAccessToken(req.cookies?.accessToken);
+    tryAttachFromAccessToken(req.headers.authorization?.split(' ')[1]);
+
+    // 3) Use refresh token (DB lookup + decode) if still missing info
+    const refreshTokenValue = req.cookies?.refreshToken;
+    let refreshTokenDoc = null;
+    if (refreshTokenValue) {
+      refreshTokenDoc = await tryAttachFromRefreshToken(refreshTokenValue);
     }
 
     // 4) Last resort: use payload provided by client (if available)
-    if (!res.locals.logUser && (req.body?.userId || req.body?.email)) {
+    if (req.body && (req.body.userId || req.body.email)) {
       let providedUserId = req.body.userId;
       let providedEmail = req.body.email;
       let providedRole = req.body.role;
 
-      if (!providedEmail || !providedRole) {
-        const lookupFilters = [];
-        if (providedUserId) lookupFilters.push({ _id: providedUserId });
-        if (providedEmail) lookupFilters.push({ email: providedEmail });
-
-        if (lookupFilters.length) {
-          const userRecord = await User.findOne({ $or: lookupFilters }).select('email role');
-          providedEmail = providedEmail || userRecord?.email;
-          providedRole = providedRole || userRecord?.role;
-          if (!providedUserId && userRecord?._id) {
-            providedUserId = userRecord._id;
-          }
-        }
+      if ((!providedEmail || !providedRole) && providedUserId) {
+        const userRecord = await User.findById(providedUserId).select('email role');
+        providedEmail = providedEmail || userRecord?.email;
+        providedRole = providedRole || userRecord?.role;
       }
 
-      if (providedUserId) {
-        await attachLogUser({
-          userId: providedUserId,
-          email: providedEmail,
-          role: providedRole,
-        });
-      }
+      mergeLogUser({
+        userId: providedUserId,
+        email: providedEmail,
+        role: providedRole,
+      });
     }
-    
-    const { refreshToken } = req.cookies;
-    if (refreshToken) {
-      await RefreshToken.deleteOne({ token: refreshToken });
+
+    const { refreshToken: refreshCookie } = req.cookies;
+    if (refreshTokenDoc) {
+      await refreshTokenDoc.deleteOne();
+    } else if (refreshCookie) {
+      await RefreshToken.deleteOne({ token: refreshCookie });
     }
 
     res.clearCookie("accessToken");

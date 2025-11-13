@@ -397,7 +397,7 @@ digiLibrary-api/
 │   │   └── userRoutes.js      # /api/users - User management
 │   │
 │   ├── services/               # Business logic services
-│   │   ├── mailService.js     # Email sending with Nodemailer
+│   │   ├── mailService.js     # Email sending with SendGrid
 │   │   └── reminderService.js # Cron jobs for reminders and late fees
 │   │
 │   ├── validators/             # Input validation schemas
@@ -406,12 +406,6 @@ digiLibrary-api/
 │   │   ├── loanValidator.js   # Borrow, return validation
 │   │   └── reviewValidator.js # Review validation
 │   │
-│   └── logs/                   # Log files (auto-generated)
-│       ├── reqLog.log         # HTTP request logs
-│       ├── errLog.log         # Backend error logs
-│       ├── uiInfo.log         # Frontend info logs (remote)
-│       └── uiError.log        # Frontend error logs (remote)
-│
 ├── .env.example                # Environment template
 ├── .gitignore                  # Git ignore rules
 ├── package.json                # Dependencies and scripts
@@ -464,7 +458,7 @@ digiLibrary-api/
 - Frontend sends logs to `/api/logs` endpoint
 - Rate limited: 60 requests/min per IP
 - Optional API key protection via `LOG_API_KEY`
-- Logs stored in `uiInfo.log` (info) and `uiError.log` (error)
+- Logs stored in the MongoDB `logs` collection (tagged with `operation: frontend`)
 - Includes: level, message, metadata, timestamp, IP, user agent
 
 ### Cron Job Details
@@ -503,11 +497,11 @@ npm test
 
 ## 📊 Monitoring & Logging
 
-### Log Files
-- `reqLog.log` - All HTTP requests with IP, method, URL
-- `errLog.log` - Backend errors with stack traces
-- `uiInfo.log` - Frontend info logs (from remote logger)
-- `uiError.log` - Frontend error logs (from remote logger)
+### MongoDB Logs Collection
+- All backend and frontend events are stored in the MongoDB `logs` collection (90-day TTL)
+- Filter by `operation` (auth, book, loan, payment, contact, frontend, etc.) or `level` (info/warn/error)
+- Each entry includes request/response context, user metadata, IP, user agent, and timing information
+- Frontend remote logs arrive through `/api/logs` and are flagged with `operation: frontend`
 
 ## 📦 Dependencies Overview
 
