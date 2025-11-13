@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/authController");
-const { verifyRefreshToken } = require("../middleware/auth");
+const { verifyRefreshToken, verifyAccessToken } = require("../middleware/auth");
 const { registerValidationRules, loginValidationRules } = require('../validators/authValidator');
 const { validationResult } = require('express-validator');
 
@@ -86,11 +86,13 @@ router.post("/refresh-token", verifyRefreshToken, authController.refreshTokens);
  *   post:
  *     summary: Logout a user
  *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Logout successful
  */
-router.post("/logout", authController.logout);
+router.post("/logout", verifyAccessToken, authController.logout);
 
 // Password reset routes
 router.post("/forgot-password", authController.requestPasswordReset);

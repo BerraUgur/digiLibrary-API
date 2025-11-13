@@ -65,6 +65,14 @@ const registerUser = async (req, res) => {
     });
     await user.save();
 
+    // Add user info to res.locals for logging
+    res.locals.logUser = {
+      userId: user._id,
+      email: user.email,
+      role: user.role,
+      isAuthenticated: true,
+    };
+
     const { password: _, ...userResponse } = user.toObject();
     res.status(201).json(userResponse);
   } catch (error) {
@@ -114,6 +122,15 @@ const loginUser = async (req, res) => {
     });
 
     const { password: _, ...userResponse } = user.toObject();
+    
+    // Add user info to res.locals for logging
+    res.locals.logUser = {
+      userId: user._id,
+      email: user.email,
+      role: user.role,
+      isAuthenticated: true,
+    };
+    
     res.status(200).json({ message: "Login successful!", user: userResponse });
   } catch (error) {
     await logErrorDetails('User Login Failed', error, req, {
@@ -154,13 +171,21 @@ const refreshTokens = async (req, res) => {
       maxAge: accessToken.cookieMaxAge,
     });
 
-    res.cookie("refreshToken", tokens.refreshToken, {
+    res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       path: "/api/auth/refresh-token",
       maxAge: refreshToken.cookieMaxAge,
     });
+
+    // Add user info to res.locals for logging
+    res.locals.logUser = {
+      userId: req.user.id || req.user._id,
+      email: req.user.email,
+      role: req.user.role,
+      isAuthenticated: true,
+    };
 
     res.status(200).json({ message: "Tokens successfully refreshed." });
   } catch (error) {
@@ -173,6 +198,16 @@ const refreshTokens = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
+    // Extract user info before clearing cookies
+    if (req.user) {
+      res.locals.logUser = {
+        userId: req.user.id || req.user._id,
+        email: req.user.email,
+        role: req.user.role,
+        isAuthenticated: true,
+      };
+    }
+    
     const { refreshToken } = req.cookies;
     if (refreshToken) {
       await RefreshToken.deleteOne({ token: refreshToken });

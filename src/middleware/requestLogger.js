@@ -14,7 +14,10 @@ const requestLogger = (req, res, next) => {
     '/uploads',
     '/static',
     '/api/books/image',
-    '/api/books/popular'
+    '/api/books/popular',
+    '/api/payments/stripe-webhook',
+    '/api/payments/iyzico-callback',
+    '/api/payments/iyzico-book-callback'
   ];
   
   const shouldSkip = skipPaths.some(path => req.path.startsWith(path));
@@ -25,6 +28,31 @@ const requestLogger = (req, res, next) => {
   // Skip GET requests with stats query (analytics requests)
   if (req.method === 'GET' && req.query.stats) {
     return next();
+  }
+
+  // Skip initial favorites check (happens before login completes)
+  if (req.path === '/api/users/favorites' && req.method === 'GET' && !req.cookies.accessToken) {
+    return next();
+  }
+
+  // Skip simple GET list requests (only log mutations and detail views)
+  if (req.method === 'GET') {
+    const simpleListPaths = [
+      '/api/books',
+      '/api/reviews',
+      '/api/loans',
+      '/api/users',
+      '/api/contact'
+    ];
+    
+    // Skip if it's a list endpoint without specific ID
+    const isListEndpoint = simpleListPaths.some(path => {
+      return req.path === path || (req.path.startsWith(path) && !req.path.match(/\/[a-f0-9]{24}$/));
+    });
+    
+    if (isListEndpoint && !req.path.includes('/me') && !req.path.includes('/favorites')) {
+      return next();
+    }
   }
 
   // Extract user info from token before logout clears it
@@ -75,16 +103,19 @@ const requestLogger = (req, res, next) => {
     const message = `${req.method} ${req.originalUrl} - ${res.statusCode} - ${responseTime}ms`;
 
     try {
+      // Check if user info was set by controller (for login/logout)
+      const finalUserInfo = res.locals?.logUser || userInfo;
+      
       // Pass original req with user info added
-      if (userInfo) {
-        req.user = userInfo;
+      if (finalUserInfo) {
+        req.user = finalUserInfo;
       }
       
       await logger[level](message, {
         req,
         res,
         operation,
-        user: userInfo,
+        user: finalUserInfo,
         metadata: {
           responseTime,
         },
