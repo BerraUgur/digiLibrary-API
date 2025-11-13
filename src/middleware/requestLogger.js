@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const { accessToken } = require('../config/jwtConfig');
 
 // Request logger middleware - logs all incoming requests
-const requestLogger = async (req, res, next) => {
+const requestLogger = (req, res, next) => {
   const startTime = Date.now();
 
   // Skip logging for certain paths
@@ -37,30 +37,21 @@ const requestLogger = async (req, res, next) => {
     // Token invalid or expired, no user info
   }
 
-  // Capture response
-  const originalSend = res.send;
-  const originalJson = res.json;
+  // Function to log the request (with guard to prevent double logging)
+  let isLogged = false;
+  const logRequest = async () => {
+    if (isLogged) return; // Prevent double logging
+    isLogged = true;
 
-  res.send = function (data) {
-    res.responseTime = Date.now() - startTime;
-    originalSend.call(this, data);
-  };
-
-  res.json = function (data) {
-    res.responseTime = Date.now() - startTime;
-    originalJson.call(this, data);
-  };
-
-  // Log after response is sent
-  res.on('finish', async () => {
     const responseTime = Date.now() - startTime;
-    res.responseTime = responseTime;
+
+    // Skip 304 Not Modified responses
+    if (res.statusCode === 304) return;
 
     // Determine log level based on status code
     let level = 'info';
     if (res.statusCode >= 500) level = 'error';
     else if (res.statusCode >= 400) level = 'warn';
-    else if (res.statusCode === 304) return; // Skip not modified responses
 
     // Determine operation based on URL path
     let operation = 'other';
@@ -92,7 +83,31 @@ const requestLogger = async (req, res, next) => {
     } catch (error) {
       console.error('Failed to log request:', error);
     }
-  });
+  };
+
+  // Override res.json
+  const originalJson = res.json.bind(res);
+  res.json = function(data) {
+    logRequest();
+    return originalJson(data);
+  };
+
+  // Override res.send
+  const originalSend = res.send.bind(res);
+  res.send = function(data) {
+    logRequest();
+    return originalSend(data);
+  };
+
+  // Override res.status for chaining
+  const originalStatus = res.status.bind(res);
+  res.status = function(code) {
+    res.statusCode = code;
+    return originalStatus(code);
+  };
+
+  // Fallback: also listen to finish event
+  res.on('finish', logRequest);
 
   next();
 };
