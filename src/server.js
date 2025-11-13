@@ -3,60 +3,56 @@ const app = require("./app");
 const connectDB = require("./config/dbConfig");
 const { startReminderCron, startLateFeeCalculation } = require('./services/reminderService');
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
-/**
- * Initialize and start the server
- * Handles database connection, cron jobs, and HTTP server startup
-*/
 const startServer = async () => {
   try {
-    // Connect to MongoDB
+    console.log("🔹 Starting server...");
+    console.log("🔹 Environment check:");
+    console.log("PORT:", PORT);
+    console.log("MONGO_URI exists:", !!process.env.MONGO_URI);
+
     await connectDB();
 
-    // Initialize cron jobs for automated tasks
     startReminderCron();
     startLateFeeCalculation();
-    console.log('⏰ Cron jobs initialized: Email reminders (09:00) | Late fees (00:01)');
+    console.log('⏰ Cron jobs initialized.');
 
-    // Start Express server
     const server = app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT} in ${NODE_ENV} mode`);
     });
 
-    // Graceful shutdown handlers
     const gracefulShutdown = async (signal) => {
+      console.log(`Received ${signal}, shutting down...`);
       server.close(async () => {
         try {
           await require('mongoose').connection.close();
           process.exit(0);
         } catch (err) {
+          console.error(err);
           process.exit(1);
         }
       });
-
-      // Force shutdown after 10 seconds
-      setTimeout(() => {
-        process.exit(1);
-      }, 10000);
+      setTimeout(() => process.exit(1), 10000);
     };
 
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
   } catch (error) {
+    console.error("❌ Server error:", error);
     process.exit(1);
   }
 };
 
-// Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
+  console.error("❌ Uncaught Exception:", error);
   process.exit(1);
 });
 
-// Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
+  console.error("❌ Unhandled Rejection:", reason);
   process.exit(1);
 });
 
