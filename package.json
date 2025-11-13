@@ -38,7 +38,7 @@
     "mongoose": "^8.13.2",
     "multer": "^2.0.2",
     "node-cron": "^3.0.3",
-    "nodemailer": "^6.10.1",
+    "@sendgrid/mail": "^8.1.4",
     "stripe": "^18.0.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",

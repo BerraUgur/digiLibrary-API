@@ -54,7 +54,7 @@ A comprehensive RESTful API for a digital library management system built with N
 
 ### Payment & Email
 - **Payment:** Stripe 18.0 (also has Iyzipay 2.0 configured)
-- **Email:** Nodemailer 6.10 (Gmail SMTP)
+- **Email:** SendGrid Mail 8.1 (API-based email service)
 
 ### Validation & Documentation
 - **Validation:** express-validator 7.2
@@ -76,7 +76,7 @@ A comprehensive RESTful API for a digital library management system built with N
 
 - Node.js (v16 or higher)
 - MongoDB (v5 or higher)
-- Gmail account (for email notifications)
+- SendGrid account (for email notifications)
 - Stripe account (for payments)
 
 ## ⚙️ Installation
@@ -110,9 +110,9 @@ API_URL=http://localhost:3000
 # Database
 MONGO_URI=mongodb://localhost:27017/DigiLibrary
 
-# Email Configuration (Gmail)
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASS=your-16-char-app-password
+# Email Configuration (SendGrid)
+SENDGRID_API_KEY=your_sendgrid_api_key_here
+SENDGRID_FROM_EMAIL=noreply@yourdomain.com
 
 # JWT Secrets (generate random strings)
 JWT_ACCESS_SECRET=your-random-secret-here
@@ -141,11 +141,13 @@ CONTACT_PHONE=+90 (555) 123-4567
 
 **Important Setup Steps:**
 
-**Gmail App Password:**
-1. Enable 2-Step Verification on your Google Account
-2. Go to: https://myaccount.google.com/apppasswords
-3. Generate new app password (select "Mail" and "Other")
-4. Use the 16-character password (no spaces) in `EMAIL_PASS`
+**SendGrid Email Setup:**
+1. Create free account at https://sendgrid.com/
+2. Go to Settings > API Keys > Create API Key
+3. Select "Full Access" and copy the API key
+4. Go to Settings > Sender Authentication
+5. Verify your sender email address or domain
+6. Use verified email in `SENDGRID_FROM_EMAIL`
 
 **Generate JWT Secrets:**
 ```bash

@@ -1,25 +1,21 @@
 require('dotenv').config();
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 const { logEvents } = require('../middleware/logEvents');
 
-// Gmail SMTP transporter configuration
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+// SendGrid API Key configuration
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 // Send reminder email for book return
 const sendReminderEmail = async (to, subject, text) => {
+  const msg = {
+    to,
+    from: process.env.SENDGRID_FROM_EMAIL,
+    subject,
+    text,
+  };
+
   try {
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to,
-      subject,
-      text,
-    });
+    await sgMail.send(msg);
   } catch (error) {
     await logEvents(
       `[OPERATION] Send Reminder Email Failed\n[ERROR] ${error.message}\n[RECIPIENT] ${to}\n[SUBJECT] ${subject}\n[STACK]\n${error.stack}`,
@@ -31,14 +27,19 @@ const sendReminderEmail = async (to, subject, text) => {
 
 // Send HTML email (general purpose)
 const sendEmail = async (to, subject, html) => {
+  const msg = {
+    to,
+    from: {
+      name: 'DigiLibrary',
+      email: process.env.SENDGRID_FROM_EMAIL
+    },
+    subject,
+    html,
+  };
+
   try {
-    const info = await transporter.sendMail({
-      from: `"DigiLibrary" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html,
-    });
-    return { success: true, messageId: info.messageId };
+    const response = await sgMail.send(msg);
+    return { success: true, messageId: response[0].headers['x-message-id'] };
   } catch (error) {
     await logEvents(
       `[OPERATION] Send Email Failed\n[ERROR] ${error.message}\n[RECIPIENT] ${to}\n[SUBJECT] ${subject}\n[STACK]\n${error.stack}`,
@@ -78,13 +79,15 @@ const sendPasswordResetEmail = async (to, resetToken) => {
     </div>
   `;
 
+  const msg = {
+    to,
+    from: process.env.SENDGRID_FROM_EMAIL,
+    subject,
+    html,
+  };
+
   try {
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to,
-      subject,
-      html,
-    });
+    await sgMail.send(msg);
   } catch (error) {
     await logEvents(
       `[OPERATION] Send Password Reset Email Failed\n[ERROR] ${error.message}\n[RECIPIENT] ${to}\n[RESET URL] ${resetUrl}\n[STACK]\n${error.stack}`,
@@ -129,13 +132,15 @@ const sendLateFeePaymentConfirmation = async (userEmail, loan, paymentAmount) =>
     </div>
   `;
 
+  const msg = {
+    to: userEmail,
+    from: process.env.SENDGRID_FROM_EMAIL,
+    subject,
+    html,
+  };
+
   try {
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: userEmail,
-      subject,
-      html,
-    });
+    await sgMail.send(msg);
   } catch (error) {
     await logEvents(
       `[OPERATION] Send Payment Confirmation Failed\n[ERROR] ${error.message}\n[RECIPIENT] ${userEmail}\n[BOOK] ${loan?.book?.title || 'Unknown'}\n[AMOUNT] ${paymentAmount} TL\n[STACK]\n${error.stack}`,
