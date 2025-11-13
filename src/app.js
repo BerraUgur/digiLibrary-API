@@ -10,6 +10,7 @@ const swaggerDocs = require('./config/swaggerConfig');
 
 const corsOptions = require("./config/corsConfig");
 const { logger } = require("./middleware/logEvents");
+const requestLogger = require("./middleware/requestLogger");
 const errorHandler = require("./middleware/errorHandler");
 
 const authRoutes = require("./routes/authRoutes");
@@ -89,7 +90,11 @@ app.use('/api/', limiter);
 // Prevent NoSQL injection attacks
 app.use(mongoSanitize());
 
+// Old file-based logger (kept for backwards compatibility)
 app.use(logger);
+
+// New MongoDB-based request logger
+app.use(requestLogger);
 
 // ============ STATIC FILES ============
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

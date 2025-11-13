@@ -1,59 +1,148 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { logEvents } = require('../middleware/logEvents');
+const { getAllLogs, getStats, cleanupOldLogs } = require('../controllers/logController');
+const { verifyAccessToken, authorizeRoles } = require('../middleware/auth');
+const { logger } = require('../services/logService');
 
 const router = express.Router();
 
-// Protect this ingestion endpoint from abuse (simple rate limit)
-const limiter = rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 60, // max 60 requests per minute per IP
+// Rate limiter for frontend log ingestion
+const frontendLogLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 60, // max 60 requests per minute per IP
 });
 
-// POST /api/logs
-router.post('/', limiter, async (req, res) => {
-    try {
-        const { level = 'info', message = '', meta = {} } = req.body || {};
+/**
+ * @swagger
+ * /api/logs:
+ *   get:
+ *     summary: Get all logs (Admin only)
+ *     tags: [Logs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: level
+ *         schema:
+ *           type: string
+ *           enum: [info, warn, error, debug]
+ *       - in: query
+ *         name: operation
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Logs retrieved successfully
+ */
+router.get('/', verifyAccessToken, authorizeRoles('ADMIN'), getAllLogs);
 
-        // If a server-side secret is configured, require it
-        if (process.env.LOG_API_KEY) {
-            const key = req.header('x-log-key');
-            if (!key || key !== process.env.LOG_API_KEY) {
-                return res.status(401).json({ error: 'Invalid log key' });
-            }
-        }
+/**
+ * @swagger
+ * /api/logs/stats:
+ *   get:
+ *     summary: Get log statistics (Admin only)
+ *     tags: [Logs]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistics retrieved successfully
+ */
+router.get('/stats', verifyAccessToken, authorizeRoles('ADMIN'), getStats);
 
-        if (!message && Object.keys(meta).length === 0) {
-            return res.status(400).json({ error: 'Either message or meta must be provided' });
-        }
+/**
+ * @swagger
+ * /api/logs/cleanup:
+ *   delete:
+ *     summary: Delete old logs (Admin only)
+ *     tags: [Logs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: days
+ *         schema:
+ *           type: integer
+ *           default: 90
+ *     responses:
+ *       200:
+ *         description: Old logs deleted successfully
+ */
+router.delete('/cleanup', verifyAccessToken, authorizeRoles('ADMIN'), cleanupOldLogs);
 
-        const timestamp = new Date().toISOString();
-        const payload = {
-            level,
-            message,
-            meta,
-            ip: req.ip,
-            userAgent: req.get('user-agent') || 'unknown',
-            url: req.get('referer') || req.originalUrl || 'unknown',
-            timestamp,
-        };
+/**
+ * @swagger
+ * /api/logs/ingest:
+ *   post:
+ *     summary: Ingest frontend logs (rate limited)
+ *     tags: [Logs]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               level:
+ *                 type: string
+ *                 enum: [info, warn, error, debug]
+ *               message:
+ *                 type: string
+ *               metadata:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Log ingested successfully
+ */
+router.post('/ingest', frontendLogLimiter, async (req, res) => {
+  try {
+    const { level = 'info', message = '', metadata = {} } = req.body || {};
 
-        // Build formatted message for server logs
-        const formatted = `[REMOTE UI LOG]\n[LEVEL] ${level}\n[TIMESTAMP] ${timestamp}\n[MESSAGE] ${message}\n[PAYLOAD] ${JSON.stringify(
-            meta,
-            null,
-            2
-        )}\n[IP] ${payload.ip}\n[USER-AGENT] ${payload.userAgent}`;
-
-        // Choose file by level for easier filtering
-        const fileName = (level && level.toLowerCase() === 'error') ? 'uiError.log' : 'uiInfo.log';
-
-        await logEvents(formatted, fileName);
-
-        return res.status(201).json({ status: 'logged' });
-    } catch (err) {
-        return res.status(500).json({ error: 'Failed to persist log' });
+    // If a server-side secret is configured, require it
+    if (process.env.LOG_API_KEY) {
+      const key = req.header('x-log-key');
+      if (!key || key !== process.env.LOG_API_KEY) {
+        return res.status(401).json({ error: 'Invalid log key' });
+      }
     }
+
+    if (!message && Object.keys(metadata).length === 0) {
+      return res.status(400).json({ error: 'Either message or metadata must be provided' });
+    }
+
+    const timestamp = new Date().toISOString();
+
+    // Create log entry in MongoDB with frontend metadata
+    await logger[level](message, {
+      req,
+      operation: 'system',
+      metadata: {
+        ...metadata,
+        source: 'frontend',
+        timestamp,
+        referer: req.get('referer'),
+      },
+    });
+
+    return res.status(201).json({ 
+      success: true,
+      message: 'Log ingested successfully' 
+    });
+  } catch (err) {
+    console.error('Failed to ingest log:', err);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Failed to persist log' 
+    });
+  }
 });
 
 module.exports = router;

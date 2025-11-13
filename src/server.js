@@ -22,7 +22,7 @@ const startServer = async () => {
 
     // Start Express server
     const server = app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT} in ${NODE_ENV} mode`);
+      console.log(`🚀 Server running on port ${PORT}`);
     });
 
     // Graceful shutdown handlers
