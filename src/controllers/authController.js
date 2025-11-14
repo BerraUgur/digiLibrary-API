@@ -22,6 +22,13 @@ const generateTokens = (user) => {
   };
 };
 
+const buildCookieOptions = (overrides = {}) => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  ...overrides,
+});
+
 const registerUser = async (req, res) => {
   let sanitizedBody;
   try {
@@ -108,20 +115,14 @@ const loginUser = async (req, res) => {
 
     await RefreshToken.create({ userId: user._id, token: tokens.refreshToken });
 
-    res.cookie("accessToken", tokens.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+    res.cookie("accessToken", tokens.accessToken, buildCookieOptions({
       maxAge: accessToken.cookieMaxAge,
-    });
+    }));
 
-    res.cookie("refreshToken", tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+    res.cookie("refreshToken", tokens.refreshToken, buildCookieOptions({
       path: "/api/auth/refresh-token",
       maxAge: refreshToken.cookieMaxAge,
-    });
+    }));
 
     const { password: _, ...userResponse } = user.toObject();
     
@@ -135,7 +136,12 @@ const loginUser = async (req, res) => {
       isAuthenticated: true,
     };
     
-    return res.status(200).json({ message: "Login successful!", user: userResponse });
+    return res.status(200).json({
+      message: "Login successful!",
+      user: userResponse,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    });
   } catch (error) {
     await logErrorDetails('User Login Failed', error, req, {
       email: sanitizedBody?.email || 'N/A'
@@ -168,20 +174,14 @@ const refreshTokens = async (req, res) => {
 
     await RefreshToken.create({ userId: user._id, token: tokens.refreshToken });
 
-    res.cookie("accessToken", tokens.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+    res.cookie("accessToken", tokens.accessToken, buildCookieOptions({
       maxAge: accessToken.cookieMaxAge,
-    });
+    }));
 
-    res.cookie("refreshToken", newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+    res.cookie("refreshToken", tokens.refreshToken, buildCookieOptions({
       path: "/api/auth/refresh-token",
       maxAge: refreshToken.cookieMaxAge,
-    });
+    }));
 
     // Add user info to res.locals for logging
     res.locals.logUser = {
@@ -193,7 +193,11 @@ const refreshTokens = async (req, res) => {
       isAuthenticated: true,
     };
 
-    res.status(200).json({ message: "Tokens successfully refreshed." });
+    res.status(200).json({
+      message: "Tokens successfully refreshed.",
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    });
   } catch (error) {
     await logErrorDetails('Token Refresh Failed', error, req, {
       'old token': oldRefreshToken ? 'Provided' : 'Missing'
@@ -316,8 +320,8 @@ const logout = async (req, res) => {
       await RefreshToken.deleteOne({ token: refreshCookie });
     }
 
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken", { path: "/api/auth/refresh-token" });
+    res.clearCookie("accessToken", buildCookieOptions());
+    res.clearCookie("refreshToken", buildCookieOptions({ path: "/api/auth/refresh-token" }));
 
     return res.status(200).json({ message: "Successfully logged out." });
   } catch (error) {
